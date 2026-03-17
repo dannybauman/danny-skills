@@ -1,0 +1,46 @@
+{
+  "name": "danny-skills",
+  "owner": {
+    "name": "Danny Bauman"
+  },
+  "metadata": {
+    "description": "Danny's work skills for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "devseed-writing",
+      "source": "./skills/devseed-writing",
+      "description": "Guide for writing blog posts and project pages for the Development Seed website. Use when creating or editing content in content/blog/ or content/project/ directories, or when the user asks for help writing blog posts or project pages.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "map-to-poster",
+      "source": "./skills/map-to-poster",
+      "description": "Transforms cities into minimalist map posters. Use when the user asks to create a map poster, generate city-based art, or visualize a geographic area using MapToPoster.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "satellite-image",
+      "source": "./skills/satellite-image",
+      "description": "Fetch recent Sentinel-2 satellite imagery from Microsoft Planetary Computer. Use when the user wants satellite photos, earth observation images, or remote sensing data for a location.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "stac-scaffolder",
+      "source": "./skills/stac-scaffolder",
+      "description": "Scaffolds a STAC (SpatioTemporal Asset Catalog) project using pystac. Use when the user wants to create a STAC catalog, organize geospatial datasets, or generate metadata for satellite imagery and earth observation data.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "veda-story-creator",
+      "source": "./skills/veda-story-creator",
+      "description": "Generates VEDA scrollytelling story MDX files with satellite data visualizations. Use when the user wants to create a new data story, write a story about an earth science topic, or generate an MDX file for the stories directory.",
+      "version": "1.0.0",
+      "license": "MIT"
+    }
+  ]
+}

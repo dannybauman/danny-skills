@@ -1,0 +1,7 @@
+pystac
+xarray
+netCDF4
+h5netcdf
+Click
+cookiecutter
+requests

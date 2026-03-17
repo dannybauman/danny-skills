@@ -1,0 +1,7 @@
+pystac-client
+planetary-computer
+rioxarray
+rasterio
+matplotlib
+Pillow
+requests

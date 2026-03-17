@@ -1,0 +1,7 @@
+{
+  "collection": "sentinel-2-l2a",
+  "max_cloud_cover": 30,
+  "buffer_degrees": 0.05,
+  "days_back": 90,
+  "overview_level": 2
+}

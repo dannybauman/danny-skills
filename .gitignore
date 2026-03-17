@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+.claude/
+output/
+input/
+.venv/
+.env
+dist/
+build/
+*.log
+**/__pycache__/
+**/.venv/
+**/cache/
+**/.cache/
+*.pkl
+**/deps/
+clones/
