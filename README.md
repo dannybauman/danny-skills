@@ -1,4 +1,4 @@
-# Danny's Work Skills
+# Danny's DS Skills
 
 Claude Code plugin marketplace with work-related Agent Skills.
 
