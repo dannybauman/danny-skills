@@ -41,6 +41,13 @@
       "description": "Generates VEDA scrollytelling story MDX files with satellite data visualizations. Use when the user wants to create a new data story, write a story about an earth science topic, or generate an MDX file for the stories directory.",
       "version": "1.0.0",
       "license": "MIT"
+    },
+    {
+      "name": "airtable",
+      "source": "./skills/airtable",
+      "description": "Interact with Airtable bases via the REST API. Use when the user wants to list, search, create, or update Airtable records, manage attachments, or query tables.",
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }

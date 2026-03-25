@@ -2,7 +2,11 @@
 
 This guide covers how we build skills in this repository. It's the single source of truth for conventions, patterns, and philosophy.
 
-**Official Claude Code docs**: https://code.claude.com/docs/en/skills.md
+**Official docs**:
+- [Skills in Claude Code](https://code.claude.com/docs/en/skills)
+- [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
 
 ## Philosophy
 
@@ -50,30 +54,23 @@ skill-name/
 
 ### SKILL.md Frontmatter
 
-All fields are optional except `description` (recommended).
+All fields are optional except `description` (recommended). Only `name` and `description` are recognized across all surfaces (Claude Code, Claude.ai, Claude API).
 
-#### Portable fields (work on Claude.ai and Claude Code)
+#### Field reference
 
-| Field           | Description                                                    |
-|:----------------|:---------------------------------------------------------------|
-| `name`          | Lowercase, hyphens, max 64 chars. Defaults to directory name   |
-| `description`   | What + when to use. Max 200 chars for Claude.ai                |
-| `license`       | License identifier (e.g., `MIT`)                               |
-| `allowed-tools` | Tools Claude can use without permission prompts                |
-| `compatibility` | Platform compatibility info                                    |
-| `metadata`      | Arbitrary key-value pairs                                      |
-
-#### Claude Code-only fields
-
-| Field                      | Description                                                           |
-|:---------------------------|:----------------------------------------------------------------------|
-| `disable-model-invocation` | `true` = only manual `/name` invocation. Use for side-effect skills   |
-| `user-invocable`           | `false` = hidden from `/` menu, auto-loaded as background knowledge   |
-| `model`                    | Pin a specific model when skill is active                             |
-| `context`                  | `fork` = run in isolated subagent context                             |
-| `agent`                    | Subagent type when `context: fork` (`Explore`, `Plan`, custom)        |
-| `argument-hint`            | Autocomplete hint, e.g., `[issue-number]`                             |
-| `hooks`                    | Hooks scoped to this skill's lifecycle                                |
+| Field                      | Surface      | Description                                                           |
+|:---------------------------|:-------------|:----------------------------------------------------------------------|
+| `name`                     | All          | Lowercase letters, numbers, hyphens only. Max 64 chars. No reserved words (`anthropic`, `claude`). No XML tags. Defaults to directory name |
+| `description`              | All          | What + when to use. Max 1024 chars. No XML tags. Write in **third person** ("Generates...", not "I can help you...") |
+| `allowed-tools`            | All          | Tools Claude can use without permission prompts when skill is active  |
+| `disable-model-invocation` | Claude Code  | `true` = only manual `/name` invocation. Use for side-effect skills   |
+| `user-invocable`           | Claude Code  | `false` = hidden from `/` menu, auto-loaded as background knowledge   |
+| `model`                    | Claude Code  | Pin a specific model when skill is active                             |
+| `effort`                   | Claude Code  | Effort level override: `low`, `medium`, `high`, `max` (Opus 4.6 only) |
+| `context`                  | Claude Code  | `fork` = run in isolated subagent context                             |
+| `agent`                    | Claude Code  | Subagent type when `context: fork` (`Explore`, `Plan`, `general-purpose`, or custom) |
+| `argument-hint`            | Claude Code  | Autocomplete hint, e.g., `[issue-number]`                             |
+| `hooks`                    | Claude Code  | Hooks scoped to this skill's lifecycle                                |
 
 **Do not include Claude Code-only fields** in skills you plan to upload to Claude.ai — they cause upload errors.
 
@@ -153,6 +150,51 @@ Reference them from SKILL.md so Claude knows they exist:
 
 Claude loads these only when needed, saving context window space.
 
+## Progressive Disclosure
+
+Skills load in three levels — only what's needed enters the context window:
+
+| Level | When Loaded | Token Cost | Content |
+|:------|:------------|:-----------|:--------|
+| **Metadata** | Always (at startup) | ~100 tokens | `name` and `description` from frontmatter |
+| **Instructions** | When skill is triggered | Under 5k tokens | SKILL.md body |
+| **Resources** | As needed | Effectively unlimited | Supporting files, scripts (executed, not loaded) |
+
+This means you can bundle extensive reference material without context penalty — Claude reads it only when needed. Keep SKILL.md under 500 lines and push detailed docs to supporting files.
+
+## Descriptions & Triggering
+
+The `description` field is how Claude decides whether to use your skill. Write it carefully:
+
+- **Third person**: "Generates map posters..." not "I can help you..."
+- **Include "Use when..."**: with specific keywords users would naturally say
+- **Be specific**: "Extract text and tables from PDF files, fill forms, merge documents" not "Helps with documents"
+- **Max 1024 chars** (keep under 200 chars if you want Claude.ai compatibility)
+- **No XML tags** in the description
+
+## Degrees of Freedom
+
+Match instruction specificity to how fragile the task is:
+
+- **High freedom** (text instructions, multiple approaches valid): code review, writing, analysis
+- **Medium freedom** (pseudocode/scripts with parameters): report generation, scaffolding
+- **Low freedom** (exact scripts, no variation): database migrations, deployments, API calls with fragile sequences
+
+Default to high freedom. Only constrain when consistency or correctness requires it.
+
+## Feedback Loops
+
+For quality-critical skills, build in validation steps:
+
+```
+1. Generate output
+2. Validate (run script or check against rules)
+3. If errors → fix and re-validate
+4. Only proceed when validation passes
+```
+
+This pattern dramatically improves output quality, especially for skills that modify files or generate structured output.
+
 ## Advanced Patterns
 
 ### Running skills in a subagent
@@ -191,18 +233,34 @@ hooks:
 ---
 ```
 
-### Plugin distribution
+### Plugin marketplace distribution
 
-To share skills as a plugin:
+This repo is a plugin marketplace. The `.claude-plugin/marketplace.json` at the root defines all available plugins. Each plugin entry needs `name`, `source`, and `description`.
 
-1. Create `.claude-plugin/plugin.json` with name, description, version
-2. Put skills in `skills/` directory at plugin root
-3. Skills get namespaced: `/plugin-name:skill-name`
-4. Test locally: `claude --plugin-dir ./my-plugin`
+**Plugin sources** (in `marketplace.json`):
+- **Relative path**: `"source": "./skills/my-skill"` — plugin lives in this repo
+- **GitHub**: `"source": {"source": "github", "repo": "owner/repo", "ref": "v1.0"}`
+- **Git URL**: `"source": {"source": "url", "url": "https://gitlab.com/team/plugin.git"}`
+- **Git subdirectory**: `"source": {"source": "git-subdir", "url": "...", "path": "tools/plugin"}`
+- **npm**: `"source": {"source": "npm", "package": "@scope/plugin", "version": "^2.0"}`
 
-## Packaging for Claude.ai
+**Validation**: Run `claude plugin validate .` or `/plugin validate .` before pushing.
 
-Claude.ai has a **200 file limit** and **8MB size limit** for skill uploads.
+**Updating**: Users pull updates with `/plugin marketplace update danny-skills`.
+
+**For private repos**: Background auto-updates need `GITHUB_TOKEN` or `GH_TOKEN` set in the shell environment. Manual install/update uses existing git credential helpers.
+
+## Cross-Surface Packaging
+
+### Claude.ai
+
+Claude.ai has a **200 file limit** and **8MB size limit** for skill uploads. Use `package.sh`:
+
+```bash
+./package.sh skill-name
+```
+
+Or manually:
 
 ```bash
 zip -r skill-name.zip skill-name/ \
@@ -217,16 +275,46 @@ Always verify before upload:
 zipinfo -1 skill-name.zip | wc -l  # Must be < 200
 ```
 
+**Note**: Claude.ai skills are per-user — each team member must upload separately. Skills uploaded to Claude.ai are NOT available via the API or Claude Code (and vice versa).
+
+### Claude API
+
+Custom skills can be uploaded to the API via `POST /v1/skills` (beta). API skills are workspace-wide. The API has **no network access** and **no runtime package installation**, so script-based skills that use `run.sh` won't work without adaptation. See the [API skills guide](https://platform.claude.com/docs/en/build-with-claude/skills-guide).
+
+### Claude Code (this marketplace)
+
+Skills are installed via the plugin marketplace and have full network access and local package installation. This is the primary target for skills in this repo.
+
+## Testing
+
+- **Test with real tasks**, not contrived scenarios
+- **Test across models** if the skill may be used with different models (Haiku needs more guidance, Opus needs less)
+- **Evaluation-driven development**: Run Claude on representative tasks *without* the skill first, document failures, then write just enough to fix those gaps
+- **Observe how Claude navigates**: Watch which files it reads, in what order. If it misses references or overuses one file, restructure
+
+## Anti-Patterns
+
+- **Deeply nested references**: Keep file references one level deep from SKILL.md. Claude may partially read files referenced from *other* referenced files
+- **Too many options**: Don't list 5 libraries — pick one default with an escape hatch for edge cases
+- **Windows-style paths**: Always use forward slashes (`scripts/helper.py`), even if developing on Windows
+- **Time-sensitive info**: Don't write "before August 2025, use the old API." Put deprecated patterns in a collapsible "Old patterns" section
+- **Inconsistent terminology**: Pick one term and stick with it (e.g., always "field", not sometimes "box" or "element")
+- **Over-explaining what Claude already knows**: Challenge every paragraph — does Claude really need this?
+
 ## Conventions
 
 ### Naming
-- Skill directories: lowercase with hyphens (`map-to-poster`, `disk-cleaner`)
+- Skill directories: lowercase letters, numbers, hyphens only (`map-to-poster`, `satellite-image`)
+- Max 64 characters, no reserved words (`anthropic`, `claude`)
 - The `name` frontmatter field must match the directory name
+- Consider **gerund form** for clarity: `processing-pdfs`, `analyzing-data`
+- Avoid vague names: `helper`, `utils`, `tools`
 
 ### Description triggers
 - Always include "Use when..." phrasing with specific keywords
 - Write in third person: "Generates map posters from geographic coordinates"
-- Keep under 200 chars for Claude.ai compatibility
+- Be specific: include concrete nouns and verbs users would say
+- Keep under 200 chars for Claude.ai compatibility (max 1024 chars for Claude Code)
 
 ### I/O discipline
 - User-provided files go in `input/`
@@ -261,8 +349,12 @@ This repo contains **standalone portable skills** — copy any skill folder to y
 
 ## Official References
 
-- [Skills documentation](https://code.claude.com/docs/en/skills.md)
-- [Sub-agents](https://code.claude.com/docs/en/sub-agents.md)
-- [Plugins](https://code.claude.com/docs/en/plugins.md)
-- [Hooks](https://code.claude.com/docs/en/hooks.md)
+- [Skills in Claude Code](https://code.claude.com/docs/en/skills)
+- [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+- [Authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+- [Plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
+- [Skills API guide](https://platform.claude.com/docs/en/build-with-claude/skills-guide)
+- [Sub-agents](https://code.claude.com/docs/en/sub-agents)
+- [Plugins](https://code.claude.com/docs/en/plugins)
+- [Hooks](https://code.claude.com/docs/en/hooks)
 - [Agent Skills specification](https://agentskills.io)
