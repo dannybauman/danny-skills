@@ -16,13 +16,14 @@ Usage:
 
 import argparse
 import json
+import math
 import platform
 import random
 import subprocess
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 # ── Config ───────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,18 @@ BASE_DIR = Path(__file__).parent.parent
 SCRIPTS_DIR = Path(__file__).parent
 FRAMES_DIR = BASE_DIR / "output" / "frames"
 OUTPUT_DIR = BASE_DIR / "output"
+
+# ── Layout constants (all relative to W/H for easy resizing) ────────────────
+
+MARGIN = 120                    # outer margin from edges
+PANEL_RADIUS = 16               # rounded corner radius for floating panels
+PANEL_OPACITY = 0.06            # panel fill opacity over background
+ACCENT_BAR_W = 5                # width of vertical accent bars
+PROGRESS_DOT_Y = H - 60        # y position of progress dots
+PROGRESS_DOT_R = 4              # radius of active progress dot
+PROGRESS_DOT_SPACING = 20       # spacing between progress dots
+GLOW_DEFAULT_RADIUS = 600       # default radial glow radius
+GLOW_DEFAULT_INTENSITY = 0.15   # default glow intensity
 
 # ── Font handling (cross-platform) ───────────────────────────────────────────
 
@@ -78,40 +91,48 @@ def font(style="regular", size=40):
 
 THEMES = {
     "midnight": {
-        "bg": "#0f0f1a",
-        "bg_alt": "#141428",
-        "bg_dark": "#0a0a12",
-        "white": "#FFFFFF",
-        "muted": "#8888AA",
-        "very_muted": "#555577",
-        "accents": ["#7B68EE", "#36C5F0", "#E01E5A", "#ECB22E", "#2BAC76", "#FF6B6B"],
+        "bg": "#080810",
+        "bg_alt": "#0C0C1A",
+        "bg_dark": "#050508",
+        "white": "#F0F0FF",
+        "muted": "#9090B0",
+        "very_muted": "#505070",
+        "accents": ["#E8976C", "#F0B86A", "#C084FC", "#60A5FA", "#4ECDC4", "#FF6B9D"],
+        "glow": "#E8976C",       # warm amber glow
+        "glow_alt": "#C084FC",   # secondary violet glow
     },
     "aurora": {
-        "bg": "#0B1120",
-        "bg_alt": "#0F1A2E",
-        "bg_dark": "#080D18",
+        "bg": "#060D18",
+        "bg_alt": "#0A1425",
+        "bg_dark": "#040810",
         "white": "#E8F0FF",
         "muted": "#7A9CC6",
         "very_muted": "#4A6A8A",
         "accents": ["#00D4AA", "#4ECDC4", "#FF6B9D", "#C084FC", "#FCD34D", "#60A5FA"],
+        "glow": "#00D4AA",
+        "glow_alt": "#4ECDC4",
     },
     "ember": {
-        "bg": "#1A0A0A",
-        "bg_alt": "#241010",
-        "bg_dark": "#120808",
+        "bg": "#100808",
+        "bg_alt": "#180C0C",
+        "bg_dark": "#0A0505",
         "white": "#FFF0E8",
         "muted": "#C69A88",
         "very_muted": "#8A6A5A",
         "accents": ["#FF6B35", "#FF4444", "#FFB347", "#E85D75", "#C084FC", "#4ECDC4"],
+        "glow": "#FF6B35",
+        "glow_alt": "#FFB347",
     },
     "mono": {
-        "bg": "#111111",
-        "bg_alt": "#1A1A1A",
-        "bg_dark": "#0A0A0A",
+        "bg": "#0A0A0A",
+        "bg_alt": "#121212",
+        "bg_dark": "#060606",
         "white": "#EEEEEE",
         "muted": "#888888",
         "very_muted": "#555555",
         "accents": ["#FFFFFF", "#CCCCCC", "#AAAAAA", "#999999", "#777777", "#DDDDDD"],
+        "glow": "#444444",
+        "glow_alt": "#333333",
     },
 }
 
@@ -139,6 +160,84 @@ def gradient_bg(color1, color2):
 def solid_bg(color):
     """Create a solid color background."""
     return Image.new("RGB", (W, H), hex_to_rgb(color))
+
+
+def radial_glow_bg(theme, glow_pos=(0.8, 0.3), glow_radius=600, intensity=0.15,
+                   secondary_pos=None, secondary_radius=400, secondary_intensity=0.08):
+    """Create a dark background with soft radial glow light sources.
+
+    This is the signature cinematic look — deep dark base with warm light
+    bleeding in from off-center positions, like sunrise through a window.
+    """
+    img = gradient_bg(theme["bg"], theme["bg_alt"])
+    pixels = img.load()
+    bg_rgb = hex_to_rgb(theme["bg"])
+    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+    gx, gy = int(glow_pos[0] * W), int(glow_pos[1] * H)
+
+    for y in range(H):
+        for x in range(W):
+            dist = math.sqrt((x - gx) ** 2 + (y - gy) ** 2)
+            if dist < glow_radius * 1.5:
+                falloff = max(0.0, 1.0 - (dist / glow_radius) ** 1.8)
+                alpha = falloff * intensity
+                r, g, b = pixels[x, y]
+                pixels[x, y] = (
+                    min(255, int(r + (glow_rgb[0] - r) * alpha)),
+                    min(255, int(g + (glow_rgb[1] - g) * alpha)),
+                    min(255, int(b + (glow_rgb[2] - b) * alpha)),
+                )
+
+    # Optional secondary glow (cooler accent from opposite side)
+    if secondary_pos:
+        glow2_rgb = hex_to_rgb(theme.get("glow_alt", theme["accents"][1]))
+        gx2, gy2 = int(secondary_pos[0] * W), int(secondary_pos[1] * H)
+        for y in range(H):
+            for x in range(W):
+                dist = math.sqrt((x - gx2) ** 2 + (y - gy2) ** 2)
+                if dist < secondary_radius * 1.5:
+                    falloff = max(0.0, 1.0 - (dist / secondary_radius) ** 1.8)
+                    alpha = falloff * secondary_intensity
+                    r, g, b = pixels[x, y]
+                    pixels[x, y] = (
+                        min(255, int(r + (glow2_rgb[0] - r) * alpha)),
+                        min(255, int(g + (glow2_rgb[1] - g) * alpha)),
+                        min(255, int(b + (glow2_rgb[2] - b) * alpha)),
+                    )
+    return img
+
+
+def draw_floating_panel(draw, x, y, w, h, theme, accent=None, opacity=None):
+    """Draw a floating semi-transparent card panel with subtle border.
+
+    Creates depth by drawing a filled rectangle with a thin border.
+    The panel sits on top of the glow background, creating layered depth.
+    """
+    if opacity is None:
+        opacity = PANEL_OPACITY
+    bg_rgb = hex_to_rgb(theme["bg_alt"])
+    fill = tuple(min(255, int(c + 255 * opacity)) for c in bg_rgb)
+    draw.rounded_rectangle([x, y, x + w, y + h], radius=PANEL_RADIUS, fill=fill)
+    border_color = hex_to_rgb(accent if accent else theme["very_muted"])
+    border_top = tuple(min(255, c + 30) for c in border_color)
+    draw.rounded_rectangle([x, y, x + w, y + h], radius=PANEL_RADIUS, outline=border_top)
+
+
+def draw_progress_dots(draw, current, total, theme, y=None):
+    """Draw small progress indicator dots at the bottom of the frame."""
+    if y is None:
+        y = PROGRESS_DOT_Y
+    total_width = (total - 1) * PROGRESS_DOT_SPACING
+    start_x = (W - total_width) // 2
+    for i in range(total):
+        cx = start_x + i * PROGRESS_DOT_SPACING
+        if i == current:
+            color = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+            draw.ellipse([cx - PROGRESS_DOT_R, y - PROGRESS_DOT_R,
+                          cx + PROGRESS_DOT_R, y + PROGRESS_DOT_R], fill=color)
+        else:
+            color = hex_to_rgb(theme["very_muted"])
+            draw.ellipse([cx - 2, y - 2, cx + 2, y + 2], fill=color)
 
 
 # ── Text and accent helpers ──────────────────────────────────────────────────
@@ -220,12 +319,14 @@ def add_screenshot_inset(img, screenshot_path, accent, large=False):
 # ── Film grain overlay ───────────────────────────────────────────────────────
 
 
-def add_grain(img, intensity=8):
-    """Add subtle film grain for a premium feel (~3% opacity equivalent)."""
+def add_grain(img, intensity=6):
+    """Add subtle film grain for a premium feel. Uses numpy-style random for speed."""
     pixels = img.load()
+    # Sample fewer points but spread them — gives natural grain texture
+    rng = random.Random(42)  # deterministic for consistent frames
     for y in range(0, H, 2):
         for x in range(0, W, 2):
-            noise = random.randint(-intensity, intensity)
+            noise = rng.randint(-intensity, intensity)
             r, g, b = pixels[x, y]
             pixels[x, y] = (
                 max(0, min(255, r + noise)),
@@ -248,241 +349,309 @@ def accent(theme, index):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-def scene_title(data, theme):
-    """Title card: gradient bg, project name, description, repo URL."""
-    img = gradient_bg(theme["bg"], theme["bg_alt"])
+def scene_title(data, theme, scene_idx=0, total_scenes=1):
+    """Title card: cinematic glow bg, project name, description, repo URL."""
+    img = radial_glow_bg(theme, glow_pos=(0.5, 0.35), glow_radius=700, intensity=0.18,
+                         secondary_pos=(0.15, 0.85), secondary_radius=400, secondary_intensity=0.06)
     draw = ImageDraw.Draw(img)
 
     name = data.get("name", "Project")
     description = data.get("description", "")
     repo_url = data.get("repo_url", "")
+    a = accent(theme, 0)
 
-    draw_text_centered(draw, 360, name.upper(), font("bold", 72), theme["white"])
+    # Project name — large, centered, warm
+    draw_text_centered(draw, 340, name.upper(), font("bold", 78), theme["white"])
 
-    # Thin horizontal rule
-    draw_horizontal_rule(draw, 460, theme["very_muted"])
+    # Accent-colored thin rule
+    rule_w = min(len(name) * 35, 600)
+    rule_x = (W - rule_w) // 2
+    draw.rectangle([rule_x, 440, rule_x + rule_w, 442], fill=hex_to_rgb(a))
 
     if description:
-        lines = wrap_text(description, font("light", 32), W - 400, draw)
+        lines = wrap_text(description, font("light", 30), W - 500, draw)
         for i, line in enumerate(lines[:2]):
             draw_text_centered(
-                draw, 490 + i * 45, line, font("light", 32), theme["muted"]
+                draw, 475 + i * 44, line, font("light", 30), theme["muted"]
             )
 
     if repo_url:
-        # Strip protocol for display
         display_url = repo_url.replace("https://", "").replace("http://", "")
         draw_text_centered(
-            draw, 650, display_url, font("regular", 22), theme["very_muted"]
+            draw, 620, display_url, font("regular", 20), theme["very_muted"]
         )
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_context(data, theme):
-    """Context card: project overview from README summary."""
-    img = solid_bg(theme["bg"])
+def scene_context(data, theme, scene_idx=0, total_scenes=1):
+    """Context card: project overview from README summary with floating panel."""
+    img = radial_glow_bg(theme, glow_pos=(0.2, 0.4), glow_radius=500, intensity=0.12,
+                         secondary_pos=(0.9, 0.8), secondary_radius=350, secondary_intensity=0.05)
     draw = ImageDraw.Draw(img)
 
     a = accent(theme, 0)
-    draw_accent_bar(draw, a, x=160, y_start=260, y_end=700)
 
-    draw.text((200, 180), "THE PROJECT", font=font("bold", 48), fill=hex_to_rgb(a))
+    # Floating panel
+    panel_x, panel_y = 120, 160
+    panel_w, panel_h = W - 240, 700
+    draw_floating_panel(draw, panel_x, panel_y, panel_w, panel_h, theme, accent=a)
 
-    summary = data.get("readme_summary", "No summary available.")
-    lines = wrap_text(summary, font("light", 28), W - 450, draw)
-    for i, line in enumerate(lines[:6]):
+    # Accent bar inside panel
+    draw_accent_bar(draw, a, x=panel_x + 30, y_start=panel_y + 30, y_end=panel_y + panel_h - 30)
+
+    draw.text(
+        (panel_x + 60, panel_y + 40), "THE PROJECT",
+        font=font("bold", 44), fill=hex_to_rgb(a)
+    )
+
+    summary = data.get("readme_summary") or data.get("description") or "No summary available."
+    lines = wrap_text(summary, font("light", 28), panel_w - 120, draw)
+    for i, line in enumerate(lines[:8]):
         draw.text(
-            (200, 290 + i * 50), line, font=font("light", 28), fill=hex_to_rgb(theme["muted"])
+            (panel_x + 60, panel_y + 120 + i * 48), line,
+            font=font("light", 28), fill=hex_to_rgb(theme["muted"])
         )
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_tech_stack(data, theme):
-    """Tech stack card: primary language, other languages, tech items with percentage bars."""
-    img = solid_bg(theme["bg"])
+def scene_tech_stack(data, theme, scene_idx=0, total_scenes=1):
+    """Tech stack card: languages with glowing bars, deps in a floating panel."""
+    img = radial_glow_bg(theme, glow_pos=(0.3, 0.5), glow_radius=500, intensity=0.10,
+                         secondary_pos=(0.85, 0.3), secondary_radius=350, secondary_intensity=0.06)
     draw = ImageDraw.Draw(img)
 
     a = accent(theme, 1)
-    draw.text((200, 180), "TECH STACK", font=font("bold", 48), fill=hex_to_rgb(a))
-
-    # Primary language
     languages = data.get("languages", {})
     tech_stack = data.get("tech_stack", [])
+
+    # Left panel: Languages
+    lp_x, lp_y = 100, 140
+    lp_w = 820
+    lp_h = 780
+    draw_floating_panel(draw, lp_x, lp_y, lp_w, lp_h, theme, accent=a)
+
+    draw.text(
+        (lp_x + 40, lp_y + 30), "LANGUAGES",
+        font=font("bold", 20), fill=hex_to_rgb(theme["very_muted"])
+    )
 
     if languages:
         sorted_langs = sorted(languages.items(), key=lambda x: x[1], reverse=True)
         primary = sorted_langs[0][0]
         draw.text(
-            (200, 280), primary, font=font("bold", 56), fill=hex_to_rgb(theme["white"])
+            (lp_x + 40, lp_y + 70), primary,
+            font=font("bold", 56), fill=hex_to_rgb(theme["white"])
         )
 
-        # Other languages with percentage bars
-        y = 380
-        max_bar_w = 400
+        # Language bars — full width, glowing
+        y = lp_y + 170
+        max_bar_w = lp_w - 80
         for i, (lang, pct) in enumerate(sorted_langs[:6]):
             color = accent(theme, i)
-            # Colored dot
-            dot_x, dot_y = 200, y + 14
-            draw.ellipse(
-                [dot_x, dot_y, dot_x + 12, dot_y + 12], fill=hex_to_rgb(color)
-            )
-            # Language name and percentage
-            draw.text(
-                (225, y), f"{lang}", font=font("regular", 24), fill=hex_to_rgb(theme["white"])
-            )
+            color_rgb = hex_to_rgb(color)
             pct_val = float(pct) if isinstance(pct, (int, float)) else 0
-            draw.text(
-                (225 + 200, y),
-                f"{pct_val:.1f}%",
-                font=font("regular", 24),
-                fill=hex_to_rgb(theme["muted"]),
-            )
-            # Percentage bar
-            bar_x = 500
-            bar_y = y + 8
-            bar_h = 12
-            bar_w = int(max_bar_w * (pct_val / 100.0))
-            draw.rectangle(
-                [bar_x, bar_y, bar_x + max_bar_w, bar_y + bar_h],
-                fill=hex_to_rgb(theme["bg_alt"]),
-            )
-            draw.rectangle(
-                [bar_x, bar_y, bar_x + bar_w, bar_y + bar_h],
-                fill=hex_to_rgb(color),
-            )
-            y += 50
+            bar_w = max(4, int(max_bar_w * (pct_val / 100.0)))
 
-    # Tech stack items on the right
-    if tech_stack:
-        x_right = 1050
+            # Language name + percentage
+            draw.text(
+                (lp_x + 40, y), lang,
+                font=font("regular", 24), fill=hex_to_rgb(theme["white"])
+            )
+            pct_text = f"{pct_val:.0f}%"
+            pct_bbox = draw.textbbox((0, 0), pct_text, font=font("regular", 24))
+            draw.text(
+                (lp_x + lp_w - 40 - (pct_bbox[2] - pct_bbox[0]), y), pct_text,
+                font=font("regular", 24), fill=hex_to_rgb(theme["muted"])
+            )
+
+            # Bar track
+            bar_y = y + 38
+            bar_h = 8
+            draw.rounded_rectangle(
+                [lp_x + 40, bar_y, lp_x + 40 + max_bar_w, bar_y + bar_h],
+                radius=4, fill=hex_to_rgb(theme["bg_dark"])
+            )
+            # Filled bar
+            if bar_w > 8:
+                draw.rounded_rectangle(
+                    [lp_x + 40, bar_y, lp_x + 40 + bar_w, bar_y + bar_h],
+                    radius=4, fill=color_rgb
+                )
+
+            y += 80
+    else:
         draw.text(
-            (x_right, 280), "DEPENDENCIES", font=font("bold", 24), fill=hex_to_rgb(theme["muted"])
+            (lp_x + 40, lp_y + 80), "No language data",
+            font=font("light", 28), fill=hex_to_rgb(theme["very_muted"])
         )
-        for i, item in enumerate(tech_stack[:10]):
-            color = accent(theme, i)
-            iy = 330 + i * 40
+
+    # Right panel: Tech stack / dependencies
+    if tech_stack:
+        rp_x = 960
+        rp_y = 140
+        rp_w = 860
+        rp_h = 780
+        draw_floating_panel(draw, rp_x, rp_y, rp_w, rp_h, theme, accent=theme["accents"][2])
+
+        draw.text(
+            (rp_x + 40, rp_y + 30), "STACK",
+            font=font("bold", 20), fill=hex_to_rgb(theme["very_muted"])
+        )
+
+        for i, item in enumerate(tech_stack[:12]):
+            color = accent(theme, i + 2)
+            iy = rp_y + 80 + i * 52
+            # Colored dot
             draw.ellipse(
-                [x_right, iy + 8, x_right + 10, iy + 18], fill=hex_to_rgb(color)
+                [rp_x + 40, iy + 10, rp_x + 52, iy + 22], fill=hex_to_rgb(color)
             )
             draw.text(
-                (x_right + 22, iy),
+                (rp_x + 65, iy),
                 str(item),
-                font=font("regular", 22),
+                font=font("regular", 26),
                 fill=hex_to_rgb(theme["white"]),
             )
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_architecture(data, theme, screenshot_path=None):
-    """Architecture card: directory tree, file count, optional screenshot."""
-    img = solid_bg(theme["bg"])
+def scene_architecture(data, theme, screenshot_path=None, scene_idx=0, total_scenes=1):
+    """Architecture card: directory tree in floating panel, file count."""
+    img = radial_glow_bg(theme, glow_pos=(0.7, 0.4), glow_radius=450, intensity=0.10)
     draw = ImageDraw.Draw(img)
 
     a = accent(theme, 2)
-    draw.text((200, 180), "ARCHITECTURE", font=font("bold", 48), fill=hex_to_rgb(a))
-
     tree = data.get("tree_summary", "")
     total_files = data.get("total_files", 0)
 
     has_shot = screenshot_path and Path(screenshot_path).exists()
-    max_text_x = 900 if has_shot else W - 200
 
-    # Render tree as monospaced directory listing
-    # tree_summary may be comma-separated or newline-separated
+    # Parse tree into lines
     if tree:
         lines = [s.strip() for s in tree.replace(", ", "\n").strip().split("\n") if s.strip()]
     else:
         lines = []
-    y = 280
-    for i, line in enumerate(lines[:16]):
-        # Truncate long lines
-        max_chars = 50 if has_shot else 80
-        display = line[:max_chars] + ("..." if len(line) > max_chars else "")
-        draw.text(
-            (200, y + i * 32),
-            display,
-            font=font("regular", 22),
-            fill=hex_to_rgb(theme["muted"]),
-        )
 
-    # Total files count
+    # Panel
+    panel_w = 850 if has_shot else W - 240
+    panel_x = 120
+    panel_y = 140
+    panel_h = 780
+    draw_floating_panel(draw, panel_x, panel_y, panel_w, panel_h, theme, accent=a)
+
+    draw.text(
+        (panel_x + 40, panel_y + 30), "ARCHITECTURE",
+        font=font("bold", 20), fill=hex_to_rgb(theme["very_muted"])
+    )
+
     if total_files:
         draw.text(
-            (200, 820),
-            f"{total_files} files total",
-            font=font("regular", 22),
-            fill=hex_to_rgb(theme["very_muted"]),
+            (panel_x + 40, panel_y + 65),
+            f"{total_files} files",
+            font=font("bold", 48), fill=hex_to_rgb(theme["white"])
+        )
+
+    # Directory listing with tree-style formatting
+    y = panel_y + 150
+    max_chars = 45 if has_shot else 70
+    for i, line in enumerate(lines[:14]):
+        # Add tree prefix character
+        prefix = "\u251c\u2500 " if i < len(lines) - 1 else "\u2514\u2500 "
+        display = prefix + line[:max_chars]
+        color = accent(theme, i) if "files)" in line else theme["muted"]
+        draw.text(
+            (panel_x + 40, y + i * 38), display,
+            font=font("regular", 22), fill=hex_to_rgb(color)
         )
 
     if has_shot:
         img = add_screenshot_inset(img, screenshot_path, a)
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_feature(data, theme, feature_text, index, screenshot_path=None):
-    """Feature card: accent bar, feature text, optional screenshot."""
-    img = solid_bg(theme["bg"])
+def scene_feature(data, theme, feature_text, index, screenshot_path=None, scene_idx=0, total_scenes=1):
+    """Feature card: floating panel with accent glow, feature text prominent."""
+    a = accent(theme, index)
+
+    # Vary the glow position per feature for visual rhythm
+    glow_positions = [(0.2, 0.4), (0.8, 0.3), (0.3, 0.7), (0.7, 0.6)]
+    gp = glow_positions[index % len(glow_positions)]
+
+    img = radial_glow_bg(theme, glow_pos=gp, glow_radius=500, intensity=0.12)
     draw = ImageDraw.Draw(img)
 
-    a = accent(theme, index)
     has_shot = screenshot_path and Path(screenshot_path).exists()
 
-    draw_accent_bar(draw, a, x=140, y_start=250, y_end=780)
+    # Panel
+    panel_w = 850 if has_shot else W - 240
+    panel_x = 120
+    panel_y = 200
+    panel_h = 600
+    draw_floating_panel(draw, panel_x, panel_y, panel_w, panel_h, theme, accent=a)
+
+    # Accent bar inside panel
+    draw_accent_bar(draw, a, x=panel_x + 25, y_start=panel_y + 25, y_end=panel_y + panel_h - 25)
 
     # Feature number
     draw.text(
-        (180, 260),
+        (panel_x + 55, panel_y + 35),
         f"FEATURE {index + 1:02d}",
-        font=font("bold", 22),
-        fill=hex_to_rgb(theme["very_muted"]),
+        font=font("bold", 18), fill=hex_to_rgb(theme["very_muted"])
     )
 
-    # Feature text
-    max_w = 700 if has_shot else W - 400
-    lines = wrap_text(feature_text, font("bold", 40), max_w, draw)
+    # Feature text — large and prominent
+    max_w = panel_w - 100 if not has_shot else panel_w - 80
+    lines = wrap_text(feature_text, font("bold", 38), max_w, draw)
     for i, line in enumerate(lines[:4]):
         draw.text(
-            (180, 320 + i * 60), line, font=font("bold", 40), fill=hex_to_rgb(theme["white"])
+            (panel_x + 55, panel_y + 80 + i * 58), line,
+            font=font("bold", 38), fill=hex_to_rgb(theme["white"])
         )
 
     if has_shot:
         img = add_screenshot_inset(img, screenshot_path, a)
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_demo(data, theme, screenshot_path):
-    """Demo card: large centered screenshot, URL below."""
-    img = gradient_bg(theme["bg"], theme["bg_alt"])
+def scene_demo(data, theme, screenshot_path, scene_idx=0, total_scenes=1):
+    """Demo card: large centered screenshot with cinematic frame."""
+    img = radial_glow_bg(theme, glow_pos=(0.5, 0.5), glow_radius=700, intensity=0.15,
+                         secondary_pos=(0.1, 0.2), secondary_radius=300, secondary_intensity=0.05)
     draw = ImageDraw.Draw(img)
 
     a = accent(theme, 3)
-    draw_text_centered(draw, 120, "LIVE DEMO", font("bold", 48), a)
+    draw_text_centered(draw, 100, "LIVE DEMO", font("bold", 40), a)
 
     img = add_screenshot_inset(img, screenshot_path, a, large=True)
 
-    # URL below screenshot
     url = data.get("homepage", data.get("repo_url", ""))
     if url:
         display_url = url.replace("https://", "").replace("http://", "")
         draw_text_centered(
-            draw, 970, display_url, font("regular", 24), theme["very_muted"]
+            draw, 980, display_url, font("regular", 22), theme["very_muted"]
         )
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_stats(data, theme):
-    """Stats card: 2x3 grid of key numbers."""
-    img = solid_bg(theme["bg_dark"])
+def scene_stats(data, theme, scene_idx=0, total_scenes=1):
+    """Stats card: 2x3 grid of oversized numbers in floating panels."""
+    img = radial_glow_bg(theme, glow_pos=(0.5, 0.5), glow_radius=600, intensity=0.12,
+                         secondary_pos=(0.9, 0.1), secondary_radius=300, secondary_intensity=0.06)
     draw = ImageDraw.Draw(img)
 
     a = accent(theme, 4)
-    draw_text_centered(draw, 140, "BY THE NUMBERS", font("bold", 48), a)
+    draw_text_centered(draw, 80, "BY THE NUMBERS", font("bold", 20), theme["very_muted"])
 
     def stat_val(v, default="0"):
         return str(v) if v is not None else default
@@ -496,76 +665,88 @@ def scene_stats(data, theme):
         (stat_val(data.get("license"), "N/A"), "LICENSE"),
     ]
 
-    # 2x3 grid layout
+    # 3x2 grid of mini floating panels
     cols, rows = 3, 2
-    cell_w = W // (cols + 1)
-    cell_h = 200
-    start_x = (W - cell_w * cols) // 2
-    start_y = 300
+    cell_w = 500
+    cell_h = 340
+    gap = 40
+    grid_w = cols * cell_w + (cols - 1) * gap
+    grid_h = rows * cell_h + (rows - 1) * gap
+    start_x = (W - grid_w) // 2
+    start_y = (H - grid_h) // 2 + 20
 
     for i, (value, label) in enumerate(stats):
         col = i % cols
         row = i // cols
-        cx = start_x + col * cell_w + cell_w // 2
-        cy = start_y + row * cell_h
+        px = start_x + col * (cell_w + gap)
+        py = start_y + row * (cell_h + gap)
 
-        # Large value
-        bbox = draw.textbbox((0, 0), value, font=font("bold", 52))
+        stat_accent = accent(theme, i)
+        draw_floating_panel(draw, px, py, cell_w, cell_h, theme, accent=stat_accent)
+
+        # Large value — centered in panel
+        bbox = draw.textbbox((0, 0), value, font=font("bold", 64))
         vw = bbox[2] - bbox[0]
+        vh = bbox[3] - bbox[1]
         draw.text(
-            (cx - vw // 2, cy),
-            value,
-            font=font("bold", 52),
-            fill=hex_to_rgb(theme["white"]),
+            (px + (cell_w - vw) // 2, py + (cell_h - vh) // 2 - 20),
+            value, font=font("bold", 64), fill=hex_to_rgb(theme["white"])
         )
 
-        # Small label below
-        bbox = draw.textbbox((0, 0), label, font=font("regular", 18))
+        # Label below value
+        bbox = draw.textbbox((0, 0), label, font=font("regular", 16))
         lw = bbox[2] - bbox[0]
         draw.text(
-            (cx - lw // 2, cy + 65),
-            label,
-            font=font("regular", 18),
-            fill=hex_to_rgb(theme["very_muted"]),
+            (px + (cell_w - lw) // 2, py + cell_h - 50),
+            label, font=font("regular", 16), fill=hex_to_rgb(theme["very_muted"])
         )
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
-def scene_closing(data, theme):
-    """Closing card: project name, pitch, repo URL, install command."""
-    img = gradient_bg(theme["bg"], theme["bg_alt"])
+def scene_closing(data, theme, scene_idx=0, total_scenes=1):
+    """Closing card: project name with warm glow, repo URL, install command."""
+    img = radial_glow_bg(theme, glow_pos=(0.5, 0.4), glow_radius=700, intensity=0.20,
+                         secondary_pos=(0.2, 0.8), secondary_radius=400, secondary_intensity=0.08)
     draw = ImageDraw.Draw(img)
 
     name = data.get("name", "Project")
     description = data.get("description", "")
     repo_url = data.get("repo_url", "")
     install_cmd = data.get("install_command", "")
-
     a = accent(theme, 0)
 
-    draw_text_centered(draw, 320, name.upper(), font("bold", 64), theme["white"])
+    draw_text_centered(draw, 310, name.upper(), font("bold", 72), theme["white"])
 
-    draw_horizontal_rule(draw, 410, a, margin=600)
+    # Warm accent rule
+    rule_w = min(len(name) * 30, 500)
+    rule_x = (W - rule_w) // 2
+    draw.rectangle([rule_x, 405, rule_x + rule_w, 407], fill=hex_to_rgb(a))
 
     if description:
         lines = wrap_text(description, font("light", 28), W - 500, draw)
         for i, line in enumerate(lines[:2]):
             draw_text_centered(
-                draw, 440 + i * 42, line, font("light", 28), theme["muted"]
+                draw, 435 + i * 42, line, font("light", 28), theme["muted"]
             )
 
     if repo_url:
         display = repo_url.replace("https://", "").replace("http://", "")
         draw_text_centered(
-            draw, 570, display, font("regular", 24), theme["very_muted"]
+            draw, 570, display, font("regular", 22), theme["very_muted"]
         )
 
     if install_cmd:
-        draw_text_centered(
-            draw, 640, f"$ {install_cmd}", font("regular", 22), theme["muted"]
-        )
+        # Install command in a small floating panel
+        cmd_text = f"$ {install_cmd}"
+        cmd_bbox = draw.textbbox((0, 0), cmd_text, font=font("regular", 22))
+        cmd_w = cmd_bbox[2] - cmd_bbox[0] + 60
+        cmd_x = (W - cmd_w) // 2
+        draw_floating_panel(draw, cmd_x, 625, cmd_w, 50, theme, accent=a)
+        draw_text_centered(draw, 637, cmd_text, font("regular", 22), theme["muted"])
 
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
     return img
 
 
@@ -962,50 +1143,71 @@ def build_showcase_scenes(data, theme, screenshot_path=None):
     """
     Build scene list for showcase mode.
 
+    Skips scenes with no meaningful data (empty tech stack, no features).
+    Passes scene index and total count for progress dots.
+
     Returns: list of (image_fn, duration, transition_type, transition_duration)
     """
-    scenes = []
+    # First pass: collect scene specs, then we know total count
+    scene_specs = []
 
-    # Title — 3s
-    scenes.append((lambda: scene_title(data, theme), 3.0, "fadeblack", 0.5))
+    # Title — always included (3s)
+    scene_specs.append(("title", 3.0, "fadeblack", 0.5))
 
-    # Context — 4s
-    scenes.append((lambda: scene_context(data, theme), 4.0, "fadeblack", 0.5))
+    # Context — always included (4s)
+    scene_specs.append(("context", 4.0, "fadeblack", 0.5))
 
-    # Tech stack — 4s
-    scenes.append((lambda: scene_tech_stack(data, theme), 4.0, "fadeblack", 0.5))
+    # Tech stack — only if we have language or stack data
+    has_lang = bool(data.get("languages"))
+    has_stack = bool(data.get("tech_stack"))
+    if has_lang or has_stack:
+        scene_specs.append(("tech_stack", 4.0, "fadeblack", 0.5))
 
-    # Architecture — 4s
-    scenes.append(
-        (lambda: scene_architecture(data, theme, screenshot_path), 4.0, "slideleft", 0.4)
-    )
+    # Architecture — only if tree has meaningful depth (3+ lines)
+    tree = data.get("tree_summary", "")
+    tree_lines = [l for l in tree.split("\n") if l.strip()] if tree else []
+    if len(tree_lines) >= 3:
+        scene_specs.append(("architecture", 4.0, "slideleft", 0.4))
 
-    # Features — 4s each, slideleft between them
+    # Features — only if 2+
     features = data.get("features", [])
-    if len(features) >= 2:
-        for i, feat in enumerate(features[:4]):
-            feat_text = feat if isinstance(feat, str) else str(feat)
-            # Capture loop variable
-            scenes.append(
-                (
-                    (lambda ft=feat_text, ix=i: scene_feature(data, theme, ft, ix)),
-                    4.0,
-                    "slideleft",
-                    0.4,
-                )
-            )
+    for i, feat in enumerate(features[:4]):
+        if len(features) >= 2:
+            scene_specs.append((f"feature_{i}", 4.0, "slideleft", 0.4))
 
-    # Demo — 4s (only if screenshot exists)
+    # Demo — only if screenshot
     if screenshot_path and Path(screenshot_path).exists():
-        scenes.append(
-            (lambda: scene_demo(data, theme, screenshot_path), 4.0, "fadeblack", 0.5)
-        )
+        scene_specs.append(("demo", 4.0, "fadeblack", 0.5))
 
-    # Stats — 3.5s
-    scenes.append((lambda: scene_stats(data, theme), 3.5, "fadeblack", 0.5))
+    # Stats — always (3.5s)
+    scene_specs.append(("stats", 3.5, "fadeblack", 0.5))
 
-    # Closing — 4s, no outgoing transition
-    scenes.append((lambda: scene_closing(data, theme), 4.0, None, 0))
+    # Closing — always, no outgoing transition (4s)
+    scene_specs.append(("closing", 4.0, None, 0))
+
+    total = len(scene_specs)
+
+    # Second pass: build actual scene callables with index/total
+    scenes = []
+    for idx, (kind, dur, trans, tdur) in enumerate(scene_specs):
+        if kind == "title":
+            scenes.append((lambda i=idx, t=total: scene_title(data, theme, i, t), dur, trans, tdur))
+        elif kind == "context":
+            scenes.append((lambda i=idx, t=total: scene_context(data, theme, i, t), dur, trans, tdur))
+        elif kind == "tech_stack":
+            scenes.append((lambda i=idx, t=total: scene_tech_stack(data, theme, i, t), dur, trans, tdur))
+        elif kind == "architecture":
+            scenes.append((lambda i=idx, t=total: scene_architecture(data, theme, screenshot_path, i, t), dur, trans, tdur))
+        elif kind.startswith("feature_"):
+            fi = int(kind.split("_")[1])
+            ft = features[fi] if isinstance(features[fi], str) else str(features[fi])
+            scenes.append((lambda ft=ft, fi=fi, i=idx, t=total: scene_feature(data, theme, ft, fi, None, i, t), dur, trans, tdur))
+        elif kind == "demo":
+            scenes.append((lambda i=idx, t=total: scene_demo(data, theme, screenshot_path, i, t), dur, trans, tdur))
+        elif kind == "stats":
+            scenes.append((lambda i=idx, t=total: scene_stats(data, theme, i, t), dur, trans, tdur))
+        elif kind == "closing":
+            scenes.append((lambda i=idx, t=total: scene_closing(data, theme, i, t), dur, trans, tdur))
 
     return scenes
 

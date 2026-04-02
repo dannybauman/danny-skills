@@ -268,8 +268,9 @@ def _count_local_languages(repo_path):
 
 
 def _build_local_tree_summary(repo_path):
-    """Build a summary of top-level directories and file counts."""
-    parts = []
+    """Build a summary of top-level and second-level directories with file counts."""
+    skip_dirs = {"node_modules", "vendor", "venv", ".venv", "__pycache__", "dist", "build", "target"}
+    lines = []
     total = 0
     try:
         entries = sorted(repo_path.iterdir())
@@ -277,20 +278,34 @@ def _build_local_tree_summary(repo_path):
         return "", 0
 
     for entry in entries:
-        if entry.name.startswith("."):
-            continue
-        if entry.name in ("node_modules", "vendor", "venv", ".venv", "__pycache__"):
+        if entry.name.startswith(".") or entry.name in skip_dirs:
             continue
         if entry.is_file():
             total += 1
         elif entry.is_dir():
-            count = sum(1 for _ in entry.rglob("*") if _.is_file()
-                        and not any(p.startswith(".") for p in _.relative_to(repo_path).parts))
+            count = sum(1 for f in entry.rglob("*") if f.is_file()
+                        and not any(p.startswith(".") or p in skip_dirs
+                                    for p in f.relative_to(repo_path).parts))
             total += count
             if count > 0:
-                parts.append(f"{entry.name}/ ({count} files)")
+                lines.append(f"{entry.name}/ ({count} files)")
+                # Show subdirectories (second level)
+                try:
+                    sub_entries = sorted(entry.iterdir())
+                    sub_dirs = []
+                    for sub in sub_entries:
+                        if sub.is_dir() and not sub.name.startswith(".") and sub.name not in skip_dirs:
+                            sub_count = sum(1 for f in sub.rglob("*") if f.is_file()
+                                            and not any(p.startswith(".") or p in skip_dirs
+                                                        for p in f.relative_to(repo_path).parts))
+                            if sub_count > 0:
+                                sub_dirs.append((sub.name, sub_count))
+                    for sub_name, sub_count in sorted(sub_dirs, key=lambda x: -x[1])[:8]:
+                        lines.append(f"  {sub_name}/ ({sub_count} files)")
+                except OSError:
+                    pass
 
-    return ", ".join(parts), total
+    return "\n".join(lines), total
 
 
 def _find_readme(repo_path):
@@ -301,6 +316,21 @@ def _find_readme(repo_path):
         if p.exists():
             return p
     return None
+
+
+def _strip_markdown(text):
+    """Strip common markdown syntax from text, leaving plain words."""
+    # Links: [text](url) -> text
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    # Bold: **text** -> text
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    # Strikethrough: ~~text~~ -> text
+    text = re.sub(r"~~(.+?)~~", r"\1", text)
+    # Italic: *text* -> text (after bold so we don't mangle **bold**)
+    text = re.sub(r"\*(.+?)\*", r"\1", text)
+    # Inline code: `text` -> text
+    text = re.sub(r"`(.+?)`", r"\1", text)
+    return text
 
 
 def _extract_readme_summary(text):
@@ -335,6 +365,7 @@ def _extract_readme_summary(text):
     # Extract up to 3 sentences
     sentences = re.split(r"(?<=[.!?])\s+", text)
     summary = " ".join(sentences[:3])
+    summary = _strip_markdown(summary)
     if len(summary) > 500:
         summary = summary[:497] + "..."
     return summary
@@ -359,9 +390,7 @@ def _extract_features(text):
 
         if in_features_section and re.match(r"^[-*]\s+", stripped):
             item = re.sub(r"^[-*]\s+", "", stripped)
-            # Strip markdown bold/links but keep text
-            item = re.sub(r"\*\*(.+?)\*\*", r"\1", item)
-            item = re.sub(r"\[(.+?)\]\(.+?\)", r"\1", item)
+            item = _strip_markdown(item)
             if item and len(item) > 3:
                 features.append(item)
 
@@ -595,37 +624,57 @@ def get_readme(nwo):
 
 
 def get_remote_tree_summary(nwo):
-    """Get tree summary from GitHub API."""
-    data = run_gh(["api", f"repos/{nwo}/git/trees/HEAD"])
+    """Get tree summary from GitHub API with two levels of depth."""
+    data = run_gh(["api", f"repos/{nwo}/git/trees/HEAD?recursive=1"])
     if not isinstance(data, dict):
         return "", 0
 
     tree = data.get("tree", [])
-    dirs = []
     file_count = 0
+    dir_files = {}  # path -> file count
 
     for item in tree:
         path = item.get("path", "")
         item_type = item.get("type", "")
-        if path.startswith("."):
+        # Skip hidden dirs
+        if any(part.startswith(".") for part in path.split("/")):
+            continue
+        # Skip common non-source dirs
+        skip_dirs = {"node_modules", "vendor", "venv", ".venv", "__pycache__", "dist", "build", "target"}
+        if any(part in skip_dirs for part in path.split("/")):
             continue
         if item_type == "blob":
             file_count += 1
-        elif item_type == "tree":
-            # Get subtree file count
-            subtree_sha = item.get("sha")
-            if subtree_sha:
-                subtree = run_gh(["api", f"repos/{nwo}/git/trees/{subtree_sha}?recursive=1"])
-                if isinstance(subtree, dict):
-                    sub_files = sum(
-                        1 for t in subtree.get("tree", [])
-                        if t.get("type") == "blob"
-                    )
-                    file_count += sub_files
-                    if sub_files > 0:
-                        dirs.append(f"{path}/ ({sub_files} files)")
+            # Count files per first-level and second-level dirs
+            parts = path.split("/")
+            if len(parts) >= 2:
+                top_dir = parts[0]
+                dir_files[top_dir] = dir_files.get(top_dir, 0) + 1
+                if len(parts) >= 3:
+                    sub_dir = f"{parts[0]}/{parts[1]}"
+                    dir_files[sub_dir] = dir_files.get(sub_dir, 0) + 1
 
-    summary = ", ".join(dirs)
+    # Build tree: show top-level dirs, and for dirs with subdirs, show children
+    lines = []
+    top_dirs = sorted(
+        [(d, c) for d, c in dir_files.items() if "/" not in d],
+        key=lambda x: -x[1]
+    )
+    for top_dir, top_count in top_dirs:
+        # Find subdirectories of this top dir
+        sub_dirs = sorted(
+            [(d, c) for d, c in dir_files.items() if d.startswith(f"{top_dir}/")],
+            key=lambda x: -x[1]
+        )
+        if sub_dirs and len(sub_dirs) <= 12:
+            lines.append(f"{top_dir}/ ({top_count} files)")
+            for sub_dir, sub_count in sub_dirs[:8]:
+                sub_name = sub_dir.split("/", 1)[1]
+                lines.append(f"  {sub_name}/ ({sub_count} files)")
+        else:
+            lines.append(f"{top_dir}/ ({top_count} files)")
+
+    summary = "\n".join(lines)
     return summary, file_count
 
 
