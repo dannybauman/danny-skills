@@ -240,24 +240,19 @@ def draw_progress_dots(draw, current, total, theme, y=None):
             draw.ellipse([cx - 2, y - 2, cx + 2, y + 2], fill=color)
 
 
-# ── Extra mode effects ──────────────────────────────────────────────────────
-# "Spicy" visual effects — default ON. Each effect is a function that takes
-# an image + theme and returns the modified image. Effects are curated per
-# scene position so the video has visual rhythm, not chaos.
+# ── Extra mode effects (animated) ───────────────────────────────────────────
+# "Spicy" visual effects — default ON. Each animated effect takes an image,
+# theme, and `t` (0.0–1.0 progress through the scene) so particles drift,
+# wisps rise, and the video feels alive rather than frozen.
+
+EFFECT_FPS = 10  # frames per second for animated effects (keeps render fast)
 
 
-def fx_sparks(img, theme, count=40, seed=None):
-    """Scatter bright particle sparks — like embers drifting up.
-
-    Small bright dots with radial falloff, clustered toward edges.
-    """
+def _generate_spark_particles(count, seed):
+    """Pre-generate spark positions/properties so they're consistent across frames."""
     rng = random.Random(seed or 101)
-    draw = ImageDraw.Draw(img)
-    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
-    white = (255, 255, 255)
-
+    particles = []
     for _ in range(count):
-        # Bias toward edges — more cinematic
         if rng.random() < 0.6:
             x = rng.choice([rng.randint(0, W // 5), rng.randint(W * 4 // 5, W)])
         else:
@@ -265,168 +260,149 @@ def fx_sparks(img, theme, count=40, seed=None):
         y = rng.randint(0, H)
         size = rng.uniform(1, 3.5)
         brightness = rng.uniform(0.4, 1.0)
+        drift_speed = rng.uniform(15, 60)  # pixels per second upward
+        twinkle_phase = rng.uniform(0, math.pi * 2)
+        twinkle_speed = rng.uniform(2, 5)
+        particles.append((x, y, size, brightness, drift_speed, twinkle_phase, twinkle_speed))
+    return particles
 
-        # Core color: blend between glow and white based on brightness
-        color = tuple(int(glow_rgb[i] + (white[i] - glow_rgb[i]) * brightness) for i in range(3))
 
-        # Draw spark with soft halo
-        if size > 2:
-            halo_r = size * 3
-            for hy in range(int(y - halo_r), int(y + halo_r)):
-                for hx in range(int(x - halo_r), int(x + halo_r)):
-                    if 0 <= hx < W and 0 <= hy < H:
-                        dist = math.sqrt((hx - x) ** 2 + (hy - y) ** 2)
-                        if dist < halo_r:
-                            alpha = max(0, (1 - dist / halo_r) ** 2) * 0.15 * brightness
-                            r, g, b = img.getpixel((hx, hy))
-                            img.putpixel((hx, hy), (
-                                min(255, int(r + color[0] * alpha)),
-                                min(255, int(g + color[1] * alpha)),
-                                min(255, int(b + color[2] * alpha)),
-                            ))
-        # Bright core
-        draw.ellipse([x - size, y - size, x + size, y + size], fill=color)
+def fx_sparks(img, theme, t=0.0, count=40, seed=None, _particles=None):
+    """Animated particle sparks — drift upward and twinkle over time."""
+    if _particles is None:
+        _particles = _generate_spark_particles(count, seed)
+
+    draw = ImageDraw.Draw(img)
+    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+    white = (255, 255, 255)
+    duration = 5.0  # assumed scene duration for drift calc
+
+    for (bx, by, size, brightness, drift_speed, twinkle_phase, twinkle_speed) in _particles:
+        # Drift upward over time, wrap around
+        time_s = t * duration
+        y = (by - drift_speed * time_s) % H
+        x = bx + math.sin(time_s * 0.8 + twinkle_phase) * 5  # gentle horizontal sway
+
+        # Twinkle: brightness oscillates
+        twinkle = 0.5 + 0.5 * math.sin(time_s * twinkle_speed + twinkle_phase)
+        cur_brightness = brightness * (0.3 + 0.7 * twinkle)
+
+        color = tuple(int(glow_rgb[i] + (white[i] - glow_rgb[i]) * cur_brightness) for i in range(3))
+
+        # Halo for larger sparks
+        if size > 2 and cur_brightness > 0.5:
+            halo_r = size * 2.5
+            for hy in range(max(0, int(y - halo_r)), min(H, int(y + halo_r))):
+                for hx in range(max(0, int(x - halo_r)), min(W, int(x + halo_r))):
+                    dist = math.sqrt((hx - x) ** 2 + (hy - y) ** 2)
+                    if dist < halo_r:
+                        alpha = max(0, (1 - dist / halo_r) ** 2) * 0.12 * cur_brightness
+                        r, g, b = img.getpixel((hx, hy))
+                        img.putpixel((hx, hy), (
+                            min(255, int(r + color[0] * alpha)),
+                            min(255, int(g + color[1] * alpha)),
+                            min(255, int(b + color[2] * alpha)),
+                        ))
+
+        cur_size = size * (0.6 + 0.4 * twinkle)
+        ix, iy = int(x), int(y)
+        if 0 < ix < W - 1 and 0 < iy < H - 1:
+            draw.ellipse([ix - cur_size, iy - cur_size, ix + cur_size, iy + cur_size], fill=color)
 
     return img
 
 
-def fx_heat_wisps(img, theme, count=5, seed=None):
-    """Warm gradient wisps rising from bottom — like heat shimmer or distant flames.
-
-    Soft vertical streaks with color fade, clustered at bottom third.
-    """
+def _generate_wisp_params(count, seed):
+    """Pre-generate wisp positions so they're consistent across frames."""
     rng = random.Random(seed or 202)
-    pixels = img.load()
-    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
-
+    wisps = []
     for _ in range(count):
-        # Start position — bottom region
         cx = rng.randint(W // 6, W * 5 // 6)
         base_y = rng.randint(H * 2 // 3, H - 50)
-        wisp_h = rng.randint(150, 400)
-        wisp_w = rng.randint(30, 80)
-        intensity = rng.uniform(0.04, 0.10)
+        wisp_h = rng.randint(150, 350)
+        wisp_w = rng.randint(30, 70)
+        intensity = rng.uniform(0.04, 0.09)
+        phase = rng.uniform(0, math.pi * 2)
+        wisps.append((cx, base_y, wisp_h, wisp_w, intensity, phase))
+    return wisps
 
-        for dy in range(wisp_h):
-            y = base_y - dy
-            if y < 0:
-                break
-            # Fade out as we go up
+
+def fx_heat_wisps(img, theme, t=0.0, count=5, seed=None, _wisps=None):
+    """Animated heat wisps — rise slowly and sway over time."""
+    if _wisps is None:
+        _wisps = _generate_wisp_params(count, seed)
+
+    pixels = img.load()
+    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+    duration = 5.0
+    time_s = t * duration
+
+    for (cx, base_y, wisp_h, wisp_w, intensity, phase) in _wisps:
+        # Wisps rise over time
+        rise_offset = int(time_s * 20)  # 20 px/sec upward
+        # Intensity pulses gently
+        pulse = 0.7 + 0.3 * math.sin(time_s * 1.5 + phase)
+
+        for dy in range(0, wisp_h, 2):  # step by 2 for speed
+            y = base_y - dy - rise_offset
+            if y < 0 or y >= H:
+                continue
             falloff = (1 - dy / wisp_h) ** 1.5
-            # Horizontal spread
             spread = int(wisp_w * (1 + dy / wisp_h * 0.5))
-            wobble = int(math.sin(dy * 0.05) * 15)  # gentle S-curve
+            # Wobble shifts over time
+            wobble = int(math.sin(dy * 0.05 + time_s * 2 + phase) * 18)
 
-            for dx in range(-spread, spread):
+            for dx in range(-spread, spread, 2):  # step by 2 for speed
                 x = cx + dx + wobble
-                if 0 <= x < W and 0 <= y < H:
+                if 0 <= x < W:
                     dist_norm = abs(dx) / max(spread, 1)
-                    alpha = falloff * (1 - dist_norm ** 2) * intensity
+                    alpha = falloff * (1 - dist_norm ** 2) * intensity * pulse
                     if alpha > 0.005:
                         r, g, b = pixels[x, y]
                         pixels[x, y] = (
                             min(255, int(r + glow_rgb[0] * alpha)),
                             min(255, int(g + glow_rgb[1] * alpha)),
-                            min(255, int(b + glow_rgb[2] * alpha * 0.5)),  # less blue for warmth
+                            min(255, int(b + glow_rgb[2] * alpha * 0.5)),
                         )
     return img
 
 
-def fx_laser_streaks(img, theme, count=3, seed=None):
-    """Thin bright diagonal lines with soft glow — like laser beams cutting across.
-
-    Subtle, not full-screen. Accent-colored with bloom.
-    """
+def fx_laser_streaks(img, theme, t=0.0, count=3, seed=None):
+    """Thin diagonal laser lines — sweep across over time."""
     rng = random.Random(seed or 303)
     draw = ImageDraw.Draw(img)
+    duration = 5.0
+    time_s = t * duration
 
     for i in range(count):
         color_hex = theme["accents"][rng.randint(0, len(theme["accents"]) - 1)]
         color_rgb = hex_to_rgb(color_hex)
         bright = tuple(min(255, c + 60) for c in color_rgb)
 
-        # Random start/end points, biased toward edges
-        x1 = rng.randint(-200, W + 200)
+        # Lasers sweep: x offset shifts with time
+        sweep = int(time_s * 80 * (i + 1))  # different speeds per laser
+        x1 = rng.randint(-200, W + 200) + sweep
         y1 = rng.choice([rng.randint(-50, 50), rng.randint(H - 50, H + 50)])
-        x2 = rng.randint(-200, W + 200)
+        x2 = rng.randint(-200, W + 200) + sweep
         y2 = H - y1 + rng.randint(-200, 200)
 
-        # Soft glow line (wider, dimmer)
+        # Only draw if at least partially on screen
+        if not (-300 < x1 < W + 300 or -300 < x2 < W + 300):
+            continue
+
         dim = tuple(c // 4 for c in color_rgb)
-        draw.line([(x1, y1), (x2, y2)], fill=dim, width=8)
-        # Medium glow
-        draw.line([(x1, y1), (x2, y2)], fill=color_rgb, width=3)
-        # Bright core
+        draw.line([(x1, y1), (x2, y2)], fill=dim, width=6)
+        draw.line([(x1, y1), (x2, y2)], fill=color_rgb, width=2)
         draw.line([(x1, y1), (x2, y2)], fill=bright, width=1)
 
     return img
 
 
-def fx_fog_patches(img, theme, count=3, seed=None):
-    """Soft misty fog patches — low opacity blurred circles.
-
-    Creates atmosphere and depth. Subtle — you feel it more than see it.
-    """
-    rng = random.Random(seed or 404)
-
-    # Create fog on a separate layer, blur it, composite
-    fog = Image.new("RGB", (W, H), (0, 0, 0))
-    fog_draw = ImageDraw.Draw(fog)
-
-    muted_rgb = hex_to_rgb(theme["muted"])
-    fog_color = tuple(c // 3 for c in muted_rgb)
-
-    for _ in range(count):
-        cx = rng.randint(W // 4, W * 3 // 4)
-        cy = rng.randint(H // 3, H)
-        r = rng.randint(150, 350)
-        fog_draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fog_color)
-
-    # Heavy blur to make it soft
-    fog = fog.filter(ImageFilter.GaussianBlur(radius=80))
-
-    # Composite at low opacity
-    pixels_main = img.load()
-    pixels_fog = fog.load()
-    opacity = 0.25
-
-    for y in range(H):
-        for x in range(W):
-            fr, fg_val, fb = pixels_fog[x, y]
-            if fr > 2 or fg_val > 2 or fb > 2:  # skip pure black
-                mr, mg, mb = pixels_main[x, y]
-                pixels_main[x, y] = (
-                    min(255, int(mr + fr * opacity)),
-                    min(255, int(mg + fg_val * opacity)),
-                    min(255, int(mb + fb * opacity)),
-                )
-    return img
-
-
-def fx_chromatic_aberration(img, theme, offset=3):
-    """Slight RGB channel offset — subtle psychedelic / glitch feel.
-
-    Shifts red channel left and blue channel right by a few pixels.
-    Very subtle (2-4px) so it reads as "premium" not "broken".
-    """
-    r, g, b = img.split()
-    # Shift red left, blue right
-    from PIL import ImageChops
-    r = ImageChops.offset(r, -offset, 0)
-    b = ImageChops.offset(b, offset, 0)
-    return Image.merge("RGB", (r, g, b))
-
-
-def fx_scanlines(img, theme, spacing=4, opacity=0.06):
-    """Subtle horizontal scanlines — CRT / retro film texture.
-
-    Very faint dark lines every N pixels. Adds texture without distraction.
-    """
-    draw = ImageDraw.Draw(img)
-    line_color = (0, 0, 0)
-    for y in range(0, H, spacing):
-        # Draw a 1px line with low opacity by darkening existing pixels
-        for x in range(0, W, 3):  # every 3rd pixel for speed
+def fx_scanlines(img, theme, t=0.0, spacing=4, opacity=0.06):
+    """Subtle horizontal scanlines — static texture, slight scroll over time."""
+    y_offset = int(t * spacing * 2) % spacing  # subtle scroll
+    for y in range(y_offset, H, spacing):
+        for x in range(0, W, 3):
             if 0 <= x < W and 0 <= y < H:
                 r, g, b = img.getpixel((x, y))
                 img.putpixel((x, y), (
@@ -437,44 +413,50 @@ def fx_scanlines(img, theme, spacing=4, opacity=0.06):
     return img
 
 
-# Scene-to-effects mapping: each scene position gets a curated combo.
-# Not random — designed for visual rhythm across the video.
+# Scene-to-effects mapping: curated combos for visual rhythm.
+# No blurry effects (fog, chromatic aberration) — crisp and focused.
 EXTRA_FX_MAP = {
-    "title":        [fx_sparks, fx_heat_wisps],          # dramatic opening
-    "context":      [fx_fog_patches],                     # atmospheric
-    "tech_stack":   [fx_scanlines, fx_sparks],            # techy feel
-    "architecture": [fx_fog_patches, fx_scanlines],       # depth
-    "feature":      [fx_laser_streaks, fx_sparks],        # energetic
-    "demo":         [fx_chromatic_aberration, fx_sparks],  # showcase pop
-    "highlights":   [fx_sparks, fx_scanlines],               # techy timeline
-    "stats":        [fx_heat_wisps, fx_scanlines],        # warm glow
-    "closing":      [fx_sparks, fx_heat_wisps, fx_chromatic_aberration],  # grand finale
+    "title":        ["sparks", "heat_wisps"],        # dramatic opening
+    "context":      ["sparks"],                       # light sparkle
+    "tech_stack":   ["scanlines", "sparks"],          # techy feel
+    "architecture": ["scanlines", "sparks"],          # structured depth
+    "feature":      ["laser_streaks", "sparks"],      # energetic
+    "demo":         ["sparks"],                       # clean showcase
+    "highlights":   ["sparks", "scanlines"],          # techy timeline
+    "stats":        ["heat_wisps", "scanlines"],      # warm glow
+    "closing":      ["sparks", "heat_wisps"],         # grand finale
     # Comparison/changelog
-    "compare_title":   [fx_sparks, fx_heat_wisps],
-    "compare_setup":   [fx_fog_patches],
-    "compare_repo":    [fx_laser_streaks],
-    "compare_verdict": [fx_sparks, fx_heat_wisps, fx_chromatic_aberration],
-    "compare_closing": [fx_sparks, fx_fog_patches],
-    "changelog_title": [fx_sparks, fx_heat_wisps],
-    "changelog_pr":    [fx_laser_streaks],
-    "changelog_stats": [fx_heat_wisps, fx_scanlines],
-    "changelog_closing": [fx_sparks, fx_fog_patches],
+    "compare_title":   ["sparks", "heat_wisps"],
+    "compare_setup":   ["sparks"],
+    "compare_repo":    ["laser_streaks"],
+    "compare_verdict": ["sparks", "heat_wisps"],
+    "compare_closing": ["sparks"],
+    "changelog_title": ["sparks", "heat_wisps"],
+    "changelog_pr":    ["laser_streaks"],
+    "changelog_stats": ["heat_wisps", "scanlines"],
+    "changelog_closing": ["sparks"],
+}
+
+# Map effect names to functions
+_FX_FUNCS = {
+    "sparks": fx_sparks,
+    "heat_wisps": fx_heat_wisps,
+    "laser_streaks": fx_laser_streaks,
+    "scanlines": fx_scanlines,
 }
 
 
-def apply_extra_fx(img, theme, scene_kind, scene_idx):
-    """Apply the curated extra effects for a given scene kind."""
-    effects = EXTRA_FX_MAP.get(scene_kind, [fx_sparks])
-    for fx in effects:
-        # Use scene_idx as part of seed for variety between scenes
-        if fx in (fx_sparks, fx_heat_wisps, fx_laser_streaks, fx_fog_patches):
-            img = fx(img, theme, seed=scene_idx * 1000 + hash(fx.__name__) % 1000)
-        elif fx == fx_chromatic_aberration:
-            img = fx(img, theme, offset=2 + scene_idx % 2)
-        elif fx == fx_scanlines:
-            img = fx(img, theme)
-        else:
-            img = fx(img, theme)
+def apply_extra_fx(img, theme, scene_kind, scene_idx, t=0.0):
+    """Apply the curated animated effects for a given scene kind at time t."""
+    effect_names = EXTRA_FX_MAP.get(scene_kind, ["sparks"])
+    for name in effect_names:
+        fx_func = _FX_FUNCS.get(name)
+        if fx_func:
+            seed = scene_idx * 1000 + hash(name) % 1000
+            if name == "scanlines":
+                img = fx_func(img, theme, t=t)
+            else:
+                img = fx_func(img, theme, t=t, seed=seed)
     return img
 
 
@@ -1374,50 +1356,118 @@ def scene_changelog_closing(data, theme):
 
 def render_frames(scene_list, extra=True, theme=None):
     """
-    Render scene images to PNG files.
+    Render animated frame sequences for each scene.
 
-    scene_list: list of (image_fn, duration, transition_type, transition_duration, scene_kind)
-        where image_fn is a callable returning a PIL Image
-        scene_kind is a string like "title", "stats", etc.
-    extra: if True, apply spicy visual effects (default ON)
-    theme: theme dict (needed for extra effects)
-    Returns: list of Path objects for saved PNGs
+    When extra mode is ON, each scene gets multiple frames at EFFECT_FPS
+    so effects animate (sparks drift, wisps rise). When OFF, falls back
+    to a single static frame per scene (looped by FFmpeg).
+
+    Returns: list of dicts with 'path' (file or pattern), 'animated' (bool),
+             'fps' (int), for each scene.
     """
     FRAMES_DIR.mkdir(parents=True, exist_ok=True)
-    paths = []
+    scene_outputs = []
+
     for i, scene_tuple in enumerate(scene_list):
-        # Support both 4-tuple (legacy) and 5-tuple (with scene_kind)
         if len(scene_tuple) >= 5:
-            image_fn, _, _, _, scene_kind = scene_tuple[:5]
+            image_fn, duration, _, _, scene_kind = scene_tuple[:5]
         else:
             image_fn = scene_tuple[0]
+            duration = scene_tuple[1]
             scene_kind = "title"
 
-        path = FRAMES_DIR / f"scene_{i + 1:02d}.png"
-        print(f"  Rendering {path.name}...")
-        img = image_fn()
+        # Render the base scene image (static content)
+        print(f"  Rendering scene {i + 1:02d} ({scene_kind})...")
+        base_img = image_fn()
+        base_img = add_grain(base_img)
+
         if extra and theme:
-            img = apply_extra_fx(img, theme, scene_kind, i)
-        img = add_grain(img)
-        img.save(path, "PNG")
-        paths.append(path)
-    return paths
+            # Animated: generate multiple frames
+            scene_dir = FRAMES_DIR / f"scene_{i + 1:02d}"
+            scene_dir.mkdir(parents=True, exist_ok=True)
+            num_frames = max(2, int(duration * EFFECT_FPS))
+
+            for f_idx in range(num_frames):
+                t = f_idx / max(num_frames - 1, 1)
+                frame = base_img.copy()
+                frame = apply_extra_fx(frame, theme, scene_kind, i, t=t)
+                frame.save(scene_dir / f"frame_{f_idx:04d}.png", "PNG")
+
+            scene_outputs.append({
+                "path": str(scene_dir / "frame_%04d.png"),
+                "animated": True,
+                "fps": EFFECT_FPS,
+            })
+            print(f"    {num_frames} frames at {EFFECT_FPS}fps")
+        else:
+            # Static: single PNG
+            path = FRAMES_DIR / f"scene_{i + 1:02d}.png"
+            base_img.save(path, "PNG")
+            scene_outputs.append({
+                "path": str(path),
+                "animated": False,
+                "fps": FPS,
+            })
+
+    return scene_outputs
 
 
-def build_ffmpeg_cmd(scenes, frame_paths, output_path):
+def encode_scene_clips(scenes, scene_outputs):
+    """Encode each scene's frame sequence into a short MP4 clip.
+
+    This ensures each clip has a proper constant frame rate that FFmpeg's
+    xfade filter can work with. Returns list of clip paths.
+    """
+    clip_paths = []
+    for i, (dur, _, _) in enumerate(scenes):
+        out = scene_outputs[i]
+        clip_path = FRAMES_DIR / f"clip_{i + 1:02d}.mp4"
+
+        if out["animated"]:
+            cmd = [
+                "ffmpeg", "-y",
+                "-framerate", str(out["fps"]),
+                "-i", out["path"],
+                "-vf", f"fps={FPS},format=yuv420p",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12",
+                "-t", str(dur),
+                str(clip_path),
+            ]
+        else:
+            cmd = [
+                "ffmpeg", "-y",
+                "-loop", "1", "-t", str(dur),
+                "-i", out["path"],
+                "-vf", f"fps={FPS},format=yuv420p",
+                "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12",
+                str(clip_path),
+            ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"   Warning: clip {i+1} encoding failed: {result.stderr[-500:]}")
+        clip_paths.append(clip_path)
+
+    return clip_paths
+
+
+def build_ffmpeg_cmd(scenes, clip_paths, output_path):
     """
     Build FFmpeg command with chained xfade transitions.
 
+    Takes pre-encoded MP4 clips (constant frame rate) as inputs.
+
     scenes: list of (duration_secs, transition_type, transition_duration)
-    frame_paths: list of Path objects for scene PNGs
+    clip_paths: list of Path objects for scene MP4 clips
     """
     n = len(scenes)
     inputs = []
-    for i, (dur, _, _) in enumerate(scenes):
-        inputs.extend(["-loop", "1", "-t", str(dur), "-i", str(frame_paths[i])])
+    for i in range(n):
+        inputs.extend(["-i", str(clip_paths[i])])
 
+    # Build xfade chain
     filters = []
-    cumulative = scenes[0][0]  # duration of first scene
+    cumulative = scenes[0][0]
 
     for i in range(1, n):
         dur_i, _, _ = scenes[i]
@@ -1709,23 +1759,27 @@ def generate_video(data, theme_name="midnight", output_path=None, dry_run=False,
 
     # Render frames
     print("1. Rendering scene frames...")
-    frame_paths = render_frames(scene_list, extra=extra, theme=theme)
-    print(f"   Done: {len(frame_paths)} frames in {FRAMES_DIR}\n")
+    scene_outputs = render_frames(scene_list, extra=extra, theme=theme)
+    print(f"   Done: {len(scene_outputs)} scenes rendered to {FRAMES_DIR}\n")
 
     if dry_run:
-        print("Dry run complete. Frames saved to:")
-        for p in frame_paths:
-            print(f"  {p}")
+        print("Dry run complete. Scenes saved to:")
+        for out in scene_outputs:
+            print(f"  {out['path']}  {'(animated)' if out['animated'] else '(static)'}")
         return FRAMES_DIR
 
     # Build FFmpeg scene timing data: (duration, transition, trans_dur)
     ffmpeg_scenes = [(s[1], s[2], s[3]) for s in scene_list]
 
-    print("2. Building FFmpeg command...")
-    cmd = build_ffmpeg_cmd(ffmpeg_scenes, frame_paths, output_path)
+    print("2. Encoding scene clips...")
+    clip_paths = encode_scene_clips(ffmpeg_scenes, scene_outputs)
+    print(f"   {len(clip_paths)} clips encoded\n")
+
+    print("3. Building FFmpeg xfade chain...")
+    cmd = build_ffmpeg_cmd(ffmpeg_scenes, clip_paths, output_path)
     print("   Filter chain built\n")
 
-    print("3. Running FFmpeg...")
+    print("4. Assembling final video...")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"   FFmpeg FAILED (exit {result.returncode})")
