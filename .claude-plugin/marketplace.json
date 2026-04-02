@@ -48,6 +48,13 @@
       "description": "Interact with Airtable bases via the REST API. Use when the user wants to list, search, create, or update Airtable records, manage attachments, or query tables.",
       "version": "1.0.0",
       "license": "MIT"
+    },
+    {
+      "name": "project-video",
+      "source": "./skills/project-video",
+      "description": "Generates short highlight reel videos for software projects. Use when the user wants a project video, demo reel, highlight video, showcase, or changelog video for a GitHub repo.",
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }

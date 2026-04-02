@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+output/*.mp4
+output/*.png
+screenshots/*.png

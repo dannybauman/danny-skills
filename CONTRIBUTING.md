@@ -10,14 +10,24 @@ This guide covers how we build skills in this repository. It's the single source
 
 ## Philosophy
 
-### Scripts first, markdown second
+### Deterministic scripts over markdown
 
-Put logic in executable scripts (`scripts/`), not in SKILL.md prose. SKILL.md is an orchestration layer — it tells Claude *what to run* and *when*, not *how the algorithm works*.
+Do as much as possible in executable scripts and code, not markdown instructions for language models. The more a skill can do without Claude's judgment, the more reliable it is.
 
 - Scripts are testable, debuggable, and deterministic
 - Markdown instructions are ambiguous and produce variable results
 - When Claude runs a script, the output is predictable
-- Reserve detailed markdown for skills that are truly about Claude's reasoning (writing, analysis, code review)
+- SKILL.md is an orchestration layer — it tells Claude *what to run* and *when*, not *how the algorithm works*
+- Reserve detailed markdown only for skills that are truly about Claude's reasoning (writing, analysis, code review)
+
+### Reuse code well
+
+Extract common patterns and share them between skills rather than reimplementing.
+
+- Check existing skills for reusable helpers before writing new code
+- Shared rendering utilities, CLI patterns, and I/O conventions should be consistent
+- Reference working implementations rather than writing from scratch
+- If a pattern works in one skill, extract it so other skills can use it
 
 ### Use `/skill-creator` for new skills
 
@@ -97,7 +107,7 @@ The command output replaces the placeholder. This is preprocessing, not somethin
 
 ## run.sh Pattern
 
-Always use `uv` for Python virtual environments. Every skill with Python deps should have a `run.sh`:
+Always use `uv` for Python virtual environments — it's faster, cleaner, and the default toolchain. Fall back to standard `venv`/`pip` only for portability. Every skill with Python deps should have a `run.sh`:
 
 ```bash
 #!/usr/bin/env bash
