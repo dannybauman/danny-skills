@@ -24,6 +24,9 @@ Generates polished 45-75 second highlight reel videos for any software project. 
 
 # Dry run (PNGs only, no FFmpeg)
 ./run.sh --repo https://github.com/user/app --dry-run
+
+# Clean/minimal mode (no extra effects)
+./run.sh --repo https://github.com/user/app --no-extra
 ```
 
 ## Options
@@ -33,6 +36,7 @@ Generates polished 45-75 second highlight reel videos for any software project. 
 - `--output PATH` — Output MP4 path (default: `output/project_video.mp4`)
 - `--theme NAME` — Color theme: `midnight` (default), `aurora`, `ember`, `mono`
 - `--dry-run` — Generate scene PNGs only, skip FFmpeg assembly
+- `--no-extra` — Disable extra visual effects (sparks, lasers, fog, etc.). Extra mode is ON by default.
 - `compare` — Comparison mode: pass 2+ repo URLs after the subcommand
 - `changelog` — Sprint recap mode: uses `--since` to filter recent PRs
 

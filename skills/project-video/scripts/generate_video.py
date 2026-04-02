@@ -240,6 +240,244 @@ def draw_progress_dots(draw, current, total, theme, y=None):
             draw.ellipse([cx - 2, y - 2, cx + 2, y + 2], fill=color)
 
 
+# ── Extra mode effects ──────────────────────────────────────────────────────
+# "Spicy" visual effects — default ON. Each effect is a function that takes
+# an image + theme and returns the modified image. Effects are curated per
+# scene position so the video has visual rhythm, not chaos.
+
+
+def fx_sparks(img, theme, count=40, seed=None):
+    """Scatter bright particle sparks — like embers drifting up.
+
+    Small bright dots with radial falloff, clustered toward edges.
+    """
+    rng = random.Random(seed or 101)
+    draw = ImageDraw.Draw(img)
+    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+    white = (255, 255, 255)
+
+    for _ in range(count):
+        # Bias toward edges — more cinematic
+        if rng.random() < 0.6:
+            x = rng.choice([rng.randint(0, W // 5), rng.randint(W * 4 // 5, W)])
+        else:
+            x = rng.randint(0, W)
+        y = rng.randint(0, H)
+        size = rng.uniform(1, 3.5)
+        brightness = rng.uniform(0.4, 1.0)
+
+        # Core color: blend between glow and white based on brightness
+        color = tuple(int(glow_rgb[i] + (white[i] - glow_rgb[i]) * brightness) for i in range(3))
+
+        # Draw spark with soft halo
+        if size > 2:
+            halo_r = size * 3
+            for hy in range(int(y - halo_r), int(y + halo_r)):
+                for hx in range(int(x - halo_r), int(x + halo_r)):
+                    if 0 <= hx < W and 0 <= hy < H:
+                        dist = math.sqrt((hx - x) ** 2 + (hy - y) ** 2)
+                        if dist < halo_r:
+                            alpha = max(0, (1 - dist / halo_r) ** 2) * 0.15 * brightness
+                            r, g, b = img.getpixel((hx, hy))
+                            img.putpixel((hx, hy), (
+                                min(255, int(r + color[0] * alpha)),
+                                min(255, int(g + color[1] * alpha)),
+                                min(255, int(b + color[2] * alpha)),
+                            ))
+        # Bright core
+        draw.ellipse([x - size, y - size, x + size, y + size], fill=color)
+
+    return img
+
+
+def fx_heat_wisps(img, theme, count=5, seed=None):
+    """Warm gradient wisps rising from bottom — like heat shimmer or distant flames.
+
+    Soft vertical streaks with color fade, clustered at bottom third.
+    """
+    rng = random.Random(seed or 202)
+    pixels = img.load()
+    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+
+    for _ in range(count):
+        # Start position — bottom region
+        cx = rng.randint(W // 6, W * 5 // 6)
+        base_y = rng.randint(H * 2 // 3, H - 50)
+        wisp_h = rng.randint(150, 400)
+        wisp_w = rng.randint(30, 80)
+        intensity = rng.uniform(0.04, 0.10)
+
+        for dy in range(wisp_h):
+            y = base_y - dy
+            if y < 0:
+                break
+            # Fade out as we go up
+            falloff = (1 - dy / wisp_h) ** 1.5
+            # Horizontal spread
+            spread = int(wisp_w * (1 + dy / wisp_h * 0.5))
+            wobble = int(math.sin(dy * 0.05) * 15)  # gentle S-curve
+
+            for dx in range(-spread, spread):
+                x = cx + dx + wobble
+                if 0 <= x < W and 0 <= y < H:
+                    dist_norm = abs(dx) / max(spread, 1)
+                    alpha = falloff * (1 - dist_norm ** 2) * intensity
+                    if alpha > 0.005:
+                        r, g, b = pixels[x, y]
+                        pixels[x, y] = (
+                            min(255, int(r + glow_rgb[0] * alpha)),
+                            min(255, int(g + glow_rgb[1] * alpha)),
+                            min(255, int(b + glow_rgb[2] * alpha * 0.5)),  # less blue for warmth
+                        )
+    return img
+
+
+def fx_laser_streaks(img, theme, count=3, seed=None):
+    """Thin bright diagonal lines with soft glow — like laser beams cutting across.
+
+    Subtle, not full-screen. Accent-colored with bloom.
+    """
+    rng = random.Random(seed or 303)
+    draw = ImageDraw.Draw(img)
+
+    for i in range(count):
+        color_hex = theme["accents"][rng.randint(0, len(theme["accents"]) - 1)]
+        color_rgb = hex_to_rgb(color_hex)
+        bright = tuple(min(255, c + 60) for c in color_rgb)
+
+        # Random start/end points, biased toward edges
+        x1 = rng.randint(-200, W + 200)
+        y1 = rng.choice([rng.randint(-50, 50), rng.randint(H - 50, H + 50)])
+        x2 = rng.randint(-200, W + 200)
+        y2 = H - y1 + rng.randint(-200, 200)
+
+        # Soft glow line (wider, dimmer)
+        dim = tuple(c // 4 for c in color_rgb)
+        draw.line([(x1, y1), (x2, y2)], fill=dim, width=8)
+        # Medium glow
+        draw.line([(x1, y1), (x2, y2)], fill=color_rgb, width=3)
+        # Bright core
+        draw.line([(x1, y1), (x2, y2)], fill=bright, width=1)
+
+    return img
+
+
+def fx_fog_patches(img, theme, count=3, seed=None):
+    """Soft misty fog patches — low opacity blurred circles.
+
+    Creates atmosphere and depth. Subtle — you feel it more than see it.
+    """
+    rng = random.Random(seed or 404)
+
+    # Create fog on a separate layer, blur it, composite
+    fog = Image.new("RGB", (W, H), (0, 0, 0))
+    fog_draw = ImageDraw.Draw(fog)
+
+    muted_rgb = hex_to_rgb(theme["muted"])
+    fog_color = tuple(c // 3 for c in muted_rgb)
+
+    for _ in range(count):
+        cx = rng.randint(W // 4, W * 3 // 4)
+        cy = rng.randint(H // 3, H)
+        r = rng.randint(150, 350)
+        fog_draw.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fog_color)
+
+    # Heavy blur to make it soft
+    fog = fog.filter(ImageFilter.GaussianBlur(radius=80))
+
+    # Composite at low opacity
+    pixels_main = img.load()
+    pixels_fog = fog.load()
+    opacity = 0.25
+
+    for y in range(H):
+        for x in range(W):
+            fr, fg_val, fb = pixels_fog[x, y]
+            if fr > 2 or fg_val > 2 or fb > 2:  # skip pure black
+                mr, mg, mb = pixels_main[x, y]
+                pixels_main[x, y] = (
+                    min(255, int(mr + fr * opacity)),
+                    min(255, int(mg + fg_val * opacity)),
+                    min(255, int(mb + fb * opacity)),
+                )
+    return img
+
+
+def fx_chromatic_aberration(img, theme, offset=3):
+    """Slight RGB channel offset — subtle psychedelic / glitch feel.
+
+    Shifts red channel left and blue channel right by a few pixels.
+    Very subtle (2-4px) so it reads as "premium" not "broken".
+    """
+    r, g, b = img.split()
+    # Shift red left, blue right
+    from PIL import ImageChops
+    r = ImageChops.offset(r, -offset, 0)
+    b = ImageChops.offset(b, offset, 0)
+    return Image.merge("RGB", (r, g, b))
+
+
+def fx_scanlines(img, theme, spacing=4, opacity=0.06):
+    """Subtle horizontal scanlines — CRT / retro film texture.
+
+    Very faint dark lines every N pixels. Adds texture without distraction.
+    """
+    draw = ImageDraw.Draw(img)
+    line_color = (0, 0, 0)
+    for y in range(0, H, spacing):
+        # Draw a 1px line with low opacity by darkening existing pixels
+        for x in range(0, W, 3):  # every 3rd pixel for speed
+            if 0 <= x < W and 0 <= y < H:
+                r, g, b = img.getpixel((x, y))
+                img.putpixel((x, y), (
+                    int(r * (1 - opacity)),
+                    int(g * (1 - opacity)),
+                    int(b * (1 - opacity)),
+                ))
+    return img
+
+
+# Scene-to-effects mapping: each scene position gets a curated combo.
+# Not random — designed for visual rhythm across the video.
+EXTRA_FX_MAP = {
+    "title":        [fx_sparks, fx_heat_wisps],          # dramatic opening
+    "context":      [fx_fog_patches],                     # atmospheric
+    "tech_stack":   [fx_scanlines, fx_sparks],            # techy feel
+    "architecture": [fx_fog_patches, fx_scanlines],       # depth
+    "feature":      [fx_laser_streaks, fx_sparks],        # energetic
+    "demo":         [fx_chromatic_aberration, fx_sparks],  # showcase pop
+    "highlights":   [fx_sparks, fx_scanlines],               # techy timeline
+    "stats":        [fx_heat_wisps, fx_scanlines],        # warm glow
+    "closing":      [fx_sparks, fx_heat_wisps, fx_chromatic_aberration],  # grand finale
+    # Comparison/changelog
+    "compare_title":   [fx_sparks, fx_heat_wisps],
+    "compare_setup":   [fx_fog_patches],
+    "compare_repo":    [fx_laser_streaks],
+    "compare_verdict": [fx_sparks, fx_heat_wisps, fx_chromatic_aberration],
+    "compare_closing": [fx_sparks, fx_fog_patches],
+    "changelog_title": [fx_sparks, fx_heat_wisps],
+    "changelog_pr":    [fx_laser_streaks],
+    "changelog_stats": [fx_heat_wisps, fx_scanlines],
+    "changelog_closing": [fx_sparks, fx_fog_patches],
+}
+
+
+def apply_extra_fx(img, theme, scene_kind, scene_idx):
+    """Apply the curated extra effects for a given scene kind."""
+    effects = EXTRA_FX_MAP.get(scene_kind, [fx_sparks])
+    for fx in effects:
+        # Use scene_idx as part of seed for variety between scenes
+        if fx in (fx_sparks, fx_heat_wisps, fx_laser_streaks, fx_fog_patches):
+            img = fx(img, theme, seed=scene_idx * 1000 + hash(fx.__name__) % 1000)
+        elif fx == fx_chromatic_aberration:
+            img = fx(img, theme, offset=2 + scene_idx % 2)
+        elif fx == fx_scanlines:
+            img = fx(img, theme)
+        else:
+            img = fx(img, theme)
+    return img
+
+
 # ── Text and accent helpers ──────────────────────────────────────────────────
 
 
@@ -705,6 +943,89 @@ def scene_stats(data, theme, scene_idx=0, total_scenes=1):
     return img
 
 
+def scene_highlights(data, theme, scene_idx=0, total_scenes=1):
+    """Highlights card: recent activity as a visual timeline.
+
+    Shows recent commits or PRs as a horizontal timeline with accent dots
+    and short messages. A unique "montage within montage" feel.
+    """
+    img = radial_glow_bg(theme, glow_pos=(0.5, 0.6), glow_radius=500, intensity=0.10,
+                         secondary_pos=(0.8, 0.2), secondary_radius=350, secondary_intensity=0.06)
+    draw = ImageDraw.Draw(img)
+
+    a = accent(theme, 5 % len(theme["accents"]))
+    draw_text_centered(draw, 80, "RECENT ACTIVITY", font("bold", 20), theme["very_muted"])
+
+    # Gather activity items — prefer PRs, fall back to commits
+    prs = data.get("recent_prs", [])
+    commits = data.get("recent_commits", [])
+    items = []
+    for pr in prs[:6]:
+        items.append({"label": f"PR #{pr.get('number', '?')}", "text": pr.get("title", ""), "date": pr.get("merged_at", "")})
+    if len(items) < 3:
+        for c in commits[:6 - len(items)]:
+            items.append({"label": c.get("sha", "")[:7], "text": c.get("message", ""), "date": c.get("date", "")})
+
+    if not items:
+        # Fallback: show creation date and description
+        draw_text_centered(draw, H // 2 - 40, data.get("name", "Project"), font("bold", 56), theme["white"])
+        created = data.get("created_at")
+        if created:
+            draw_text_centered(draw, H // 2 + 40, f"Created {created}", font("light", 26), theme["muted"])
+        draw_progress_dots(draw, scene_idx, total_scenes, theme)
+        return img
+
+    # Draw items as stacked cards with a vertical timeline line
+    panel_x = MARGIN + 60
+    panel_w = W - MARGIN * 2 - 120
+    timeline_x = panel_x + 15
+
+    # Vertical timeline line
+    y_start = 150
+    y_end = min(y_start + len(items) * 120 + 40, H - 100)
+    draw.rectangle([timeline_x, y_start, timeline_x + 2, y_end], fill=hex_to_rgb(theme["very_muted"]))
+
+    for i, item in enumerate(items[:6]):
+        color = accent(theme, i)
+        y = y_start + 20 + i * 120
+
+        # Timeline dot
+        dot_r = 8
+        draw.ellipse([timeline_x - dot_r + 1, y + 10 - dot_r,
+                       timeline_x + dot_r + 1, y + 10 + dot_r], fill=hex_to_rgb(color))
+
+        # Mini floating card
+        card_x = timeline_x + 30
+        card_w = panel_w - 60
+        card_h = 90
+        draw_floating_panel(draw, card_x, y - 10, card_w, card_h, theme, accent=color, opacity=0.04)
+
+        # Label (PR number or commit sha)
+        draw.text(
+            (card_x + 20, y), item["label"],
+            font=font("bold", 18), fill=hex_to_rgb(color)
+        )
+
+        # Date on the right
+        if item["date"]:
+            date_text = item["date"][:10]
+            dbbox = draw.textbbox((0, 0), date_text, font=font("regular", 16))
+            draw.text(
+                (card_x + card_w - 20 - (dbbox[2] - dbbox[0]), y + 2), date_text,
+                font=font("regular", 16), fill=hex_to_rgb(theme["very_muted"])
+            )
+
+        # Message text — truncated
+        msg = item["text"][:80] + ("..." if len(item["text"]) > 80 else "")
+        draw.text(
+            (card_x + 20, y + 30), msg,
+            font=font("regular", 22), fill=hex_to_rgb(theme["muted"])
+        )
+
+    draw_progress_dots(draw, scene_idx, total_scenes, theme)
+    return img
+
+
 def scene_closing(data, theme, scene_idx=0, total_scenes=1):
     """Closing card: project name with warm glow, repo URL, install command."""
     img = radial_glow_bg(theme, glow_pos=(0.5, 0.4), glow_radius=700, intensity=0.20,
@@ -1051,20 +1372,32 @@ def scene_changelog_closing(data, theme):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-def render_frames(scene_list):
+def render_frames(scene_list, extra=True, theme=None):
     """
     Render scene images to PNG files.
 
-    scene_list: list of (image_fn, duration, transition_type, transition_duration)
+    scene_list: list of (image_fn, duration, transition_type, transition_duration, scene_kind)
         where image_fn is a callable returning a PIL Image
+        scene_kind is a string like "title", "stats", etc.
+    extra: if True, apply spicy visual effects (default ON)
+    theme: theme dict (needed for extra effects)
     Returns: list of Path objects for saved PNGs
     """
     FRAMES_DIR.mkdir(parents=True, exist_ok=True)
     paths = []
-    for i, (image_fn, *_rest) in enumerate(scene_list):
+    for i, scene_tuple in enumerate(scene_list):
+        # Support both 4-tuple (legacy) and 5-tuple (with scene_kind)
+        if len(scene_tuple) >= 5:
+            image_fn, _, _, _, scene_kind = scene_tuple[:5]
+        else:
+            image_fn = scene_tuple[0]
+            scene_kind = "title"
+
         path = FRAMES_DIR / f"scene_{i + 1:02d}.png"
         print(f"  Rendering {path.name}...")
         img = image_fn()
+        if extra and theme:
+            img = apply_extra_fx(img, theme, scene_kind, i)
         img = add_grain(img)
         img.save(path, "PNG")
         paths.append(path)
@@ -1151,63 +1484,71 @@ def build_showcase_scenes(data, theme, screenshot_path=None):
     # First pass: collect scene specs, then we know total count
     scene_specs = []
 
-    # Title — always included (3s)
-    scene_specs.append(("title", 3.0, "fadeblack", 0.5))
+    # Title — always included (5s — let the glow breathe)
+    scene_specs.append(("title", 5.0, "fadeblack", 0.6))
 
-    # Context — always included (4s)
-    scene_specs.append(("context", 4.0, "fadeblack", 0.5))
+    # Context — always included (6s — time to read)
+    scene_specs.append(("context", 6.0, "fadeblack", 0.5))
 
-    # Tech stack — only if we have language or stack data
+    # Tech stack — only if we have language or stack data (5s)
     has_lang = bool(data.get("languages"))
     has_stack = bool(data.get("tech_stack"))
     if has_lang or has_stack:
-        scene_specs.append(("tech_stack", 4.0, "fadeblack", 0.5))
+        scene_specs.append(("tech_stack", 5.0, "fadeblack", 0.5))
 
-    # Architecture — only if tree has meaningful depth (3+ lines)
+    # Architecture — only if tree has meaningful depth (3+ lines) (5s)
     tree = data.get("tree_summary", "")
     tree_lines = [l for l in tree.split("\n") if l.strip()] if tree else []
     if len(tree_lines) >= 3:
-        scene_specs.append(("architecture", 4.0, "slideleft", 0.4))
+        scene_specs.append(("architecture", 5.0, "slideleft", 0.4))
 
-    # Features — only if 2+
+    # Features — only if 2+ (5s each)
     features = data.get("features", [])
     for i, feat in enumerate(features[:4]):
         if len(features) >= 2:
-            scene_specs.append((f"feature_{i}", 4.0, "slideleft", 0.4))
+            scene_specs.append((f"feature_{i}", 5.0, "slideleft", 0.4))
 
-    # Demo — only if screenshot
+    # Demo — only if screenshot (5s)
     if screenshot_path and Path(screenshot_path).exists():
-        scene_specs.append(("demo", 4.0, "fadeblack", 0.5))
+        scene_specs.append(("demo", 5.0, "fadeblack", 0.5))
 
-    # Stats — always (3.5s)
-    scene_specs.append(("stats", 3.5, "fadeblack", 0.5))
+    # Highlights — a unique "montage within montage" scene showing recent activity (5s)
+    scene_specs.append(("highlights", 5.0, "fadeblack", 0.6))
 
-    # Closing — always, no outgoing transition (4s)
-    scene_specs.append(("closing", 4.0, None, 0))
+    # Stats — always (5s)
+    scene_specs.append(("stats", 5.0, "fadeblack", 0.5))
+
+    # Closing — always, no outgoing transition (5s)
+    scene_specs.append(("closing", 5.0, None, 0))
 
     total = len(scene_specs)
 
     # Second pass: build actual scene callables with index/total
+    # Each entry is a 5-tuple: (image_fn, duration, transition, trans_dur, scene_kind)
     scenes = []
     for idx, (kind, dur, trans, tdur) in enumerate(scene_specs):
+        base_kind = kind.split("_")[0] if kind.startswith("feature_") else kind
+
         if kind == "title":
-            scenes.append((lambda i=idx, t=total: scene_title(data, theme, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_title(data, theme, i, t), dur, trans, tdur, "title"))
         elif kind == "context":
-            scenes.append((lambda i=idx, t=total: scene_context(data, theme, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_context(data, theme, i, t), dur, trans, tdur, "context"))
         elif kind == "tech_stack":
-            scenes.append((lambda i=idx, t=total: scene_tech_stack(data, theme, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_tech_stack(data, theme, i, t), dur, trans, tdur, "tech_stack"))
         elif kind == "architecture":
-            scenes.append((lambda i=idx, t=total: scene_architecture(data, theme, screenshot_path, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_architecture(data, theme, screenshot_path, i, t), dur, trans, tdur, "architecture"))
         elif kind.startswith("feature_"):
             fi = int(kind.split("_")[1])
             ft = features[fi] if isinstance(features[fi], str) else str(features[fi])
-            scenes.append((lambda ft=ft, fi=fi, i=idx, t=total: scene_feature(data, theme, ft, fi, None, i, t), dur, trans, tdur))
+            scenes.append((lambda ft=ft, fi=fi, i=idx, t=total: scene_feature(data, theme, ft, fi, None, i, t), dur, trans, tdur, "feature"))
         elif kind == "demo":
-            scenes.append((lambda i=idx, t=total: scene_demo(data, theme, screenshot_path, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_demo(data, theme, screenshot_path, i, t), dur, trans, tdur, "demo"))
+        elif kind == "highlights":
+            scenes.append((lambda i=idx, t=total: scene_highlights(data, theme, i, t), dur, trans, tdur, "highlights"))
         elif kind == "stats":
-            scenes.append((lambda i=idx, t=total: scene_stats(data, theme, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_stats(data, theme, i, t), dur, trans, tdur, "stats"))
         elif kind == "closing":
-            scenes.append((lambda i=idx, t=total: scene_closing(data, theme, i, t), dur, trans, tdur))
+            scenes.append((lambda i=idx, t=total: scene_closing(data, theme, i, t), dur, trans, tdur, "closing"))
 
     return scenes
 
@@ -1319,7 +1660,8 @@ def find_screenshot(data):
 
 
 def generate_video(data, theme_name="midnight", output_path=None, dry_run=False,
-                   mode="showcase", repos=None, since=None, screenshot_path=None):
+                   mode="showcase", repos=None, since=None, screenshot_path=None,
+                   extra=True):
     """
     Main generation entry point. Importable from other modules.
 
@@ -1361,12 +1703,13 @@ def generate_video(data, theme_name="midnight", output_path=None, dry_run=False,
     else:
         scene_list = build_showcase_scenes(data, theme, screenshot_path)
 
+    extra_label = "ON" if extra else "off"
     print(f"\n=== Project Video Generator ===")
-    print(f"Mode: {mode} | Theme: {theme_name} | Scenes: {len(scene_list)}\n")
+    print(f"Mode: {mode} | Theme: {theme_name} | Extra: {extra_label} | Scenes: {len(scene_list)}\n")
 
     # Render frames
     print("1. Rendering scene frames...")
-    frame_paths = render_frames(scene_list)
+    frame_paths = render_frames(scene_list, extra=extra, theme=theme)
     print(f"   Done: {len(frame_paths)} frames in {FRAMES_DIR}\n")
 
     if dry_run:
@@ -1376,7 +1719,7 @@ def generate_video(data, theme_name="midnight", output_path=None, dry_run=False,
         return FRAMES_DIR
 
     # Build FFmpeg scene timing data: (duration, transition, trans_dur)
-    ffmpeg_scenes = [(dur, trans, tdur) for (_, dur, trans, tdur) in scene_list]
+    ffmpeg_scenes = [(s[1], s[2], s[3]) for s in scene_list]
 
     print("2. Building FFmpeg command...")
     cmd = build_ffmpeg_cmd(ffmpeg_scenes, frame_paths, output_path)
@@ -1446,6 +1789,10 @@ def build_parser():
     parser.add_argument(
         "--dry-run", action="store_true", help="Generate PNGs only, skip FFmpeg"
     )
+    parser.add_argument(
+        "--no-extra", action="store_true",
+        help="Disable extra visual effects (sparks, lasers, fog, etc.)"
+    )
 
     # Compare subcommand
     compare_parser = subparsers.add_parser("compare", help="Compare multiple repos")
@@ -1455,6 +1802,7 @@ def build_parser():
     )
     compare_parser.add_argument("--output", help="Output MP4 path")
     compare_parser.add_argument("--dry-run", action="store_true")
+    compare_parser.add_argument("--no-extra", action="store_true")
 
     # Changelog subcommand
     changelog_parser = subparsers.add_parser("changelog", help="Sprint recap video")
@@ -1466,6 +1814,7 @@ def build_parser():
     )
     changelog_parser.add_argument("--output", help="Output MP4 path")
     changelog_parser.add_argument("--dry-run", action="store_true")
+    changelog_parser.add_argument("--no-extra", action="store_true")
 
     return parser
 
@@ -1489,6 +1838,7 @@ def main():
             dry_run=args.dry_run,
             mode="comparison",
             repos=repos,
+            extra=not args.no_extra,
         )
 
     elif args.command == "changelog":
@@ -1506,6 +1856,7 @@ def main():
             dry_run=args.dry_run,
             mode="changelog",
             since=args.since,
+            extra=not args.no_extra,
         )
 
     else:
@@ -1525,6 +1876,7 @@ def main():
             output_path=args.output,
             dry_run=args.dry_run,
             mode="showcase",
+            extra=not args.no_extra,
         )
 
 
