@@ -268,26 +268,34 @@ def _generate_spark_particles(count, seed):
 
 
 def fx_sparks(img, theme, t=0.0, count=40, seed=None, _particles=None):
-    """Animated particle sparks — drift upward and twinkle over time."""
+    """Animated particle sparks — drift upward and twinkle over time.
+
+    The seed controls both positions AND visual character: different seeds
+    produce sparks that cluster in different regions, use different accent
+    colors, and drift at different speeds — so each scene feels unique.
+    """
     if _particles is None:
         _particles = _generate_spark_particles(count, seed)
 
     draw = ImageDraw.Draw(img)
-    glow_rgb = hex_to_rgb(theme.get("glow", theme["accents"][0]))
+
+    # Pick spark color from theme accents based on seed — each scene gets
+    # a different color temperature instead of always using the glow color.
+    rng_color = random.Random(seed or 0)
+    accent_idx = rng_color.randint(0, len(theme["accents"]) - 1)
+    spark_rgb = hex_to_rgb(theme["accents"][accent_idx])
     white = (255, 255, 255)
-    duration = 5.0  # assumed scene duration for drift calc
+    duration = 5.0
 
     for (bx, by, size, brightness, drift_speed, twinkle_phase, twinkle_speed) in _particles:
-        # Drift upward over time, wrap around
         time_s = t * duration
         y = (by - drift_speed * time_s) % H
-        x = bx + math.sin(time_s * 0.8 + twinkle_phase) * 5  # gentle horizontal sway
+        x = bx + math.sin(time_s * 0.8 + twinkle_phase) * 5
 
-        # Twinkle: brightness oscillates
         twinkle = 0.5 + 0.5 * math.sin(time_s * twinkle_speed + twinkle_phase)
         cur_brightness = brightness * (0.3 + 0.7 * twinkle)
 
-        color = tuple(int(glow_rgb[i] + (white[i] - glow_rgb[i]) * cur_brightness) for i in range(3))
+        color = tuple(int(spark_rgb[i] + (white[i] - spark_rgb[i]) * cur_brightness) for i in range(3))
 
         # Halo for larger sparks
         if size > 2 and cur_brightness > 0.5:
@@ -368,32 +376,56 @@ def fx_heat_wisps(img, theme, t=0.0, count=5, seed=None, _wisps=None):
 
 
 def fx_laser_streaks(img, theme, t=0.0, count=3, seed=None):
-    """Thin diagonal laser lines — sweep across over time."""
+    """Soft light beams that sweep slowly — like stage lighting or god rays.
+
+    Much softer than actual lasers: wide, low-opacity, with gentle falloff.
+    Different accent colors per beam based on seed.
+    """
     rng = random.Random(seed or 303)
-    draw = ImageDraw.Draw(img)
     duration = 5.0
     time_s = t * duration
 
     for i in range(count):
         color_hex = theme["accents"][rng.randint(0, len(theme["accents"]) - 1)]
         color_rgb = hex_to_rgb(color_hex)
-        bright = tuple(min(255, c + 60) for c in color_rgb)
 
-        # Lasers sweep: x offset shifts with time
-        sweep = int(time_s * 80 * (i + 1))  # different speeds per laser
+        # Beams sweep slowly: different speeds and directions per beam
+        sweep = int(time_s * 40 * (0.5 + i * 0.5))
         x1 = rng.randint(-200, W + 200) + sweep
-        y1 = rng.choice([rng.randint(-50, 50), rng.randint(H - 50, H + 50)])
+        y1 = rng.choice([rng.randint(-100, 0), rng.randint(H, H + 100)])
         x2 = rng.randint(-200, W + 200) + sweep
         y2 = H - y1 + rng.randint(-200, 200)
 
-        # Only draw if at least partially on screen
-        if not (-300 < x1 < W + 300 or -300 < x2 < W + 300):
-            continue
+        # Draw as multiple progressively wider, dimmer lines for a soft glow
+        pixels = img.load()
+        # Calculate line direction for perpendicular spread
+        dx = x2 - x1
+        dy = y2 - y1
+        line_len = max(1, math.sqrt(dx * dx + dy * dy))
+        # Normal direction (perpendicular to line)
+        nx = -dy / line_len
+        ny = dx / line_len
 
-        dim = tuple(c // 4 for c in color_rgb)
-        draw.line([(x1, y1), (x2, y2)], fill=dim, width=6)
-        draw.line([(x1, y1), (x2, y2)], fill=color_rgb, width=2)
-        draw.line([(x1, y1), (x2, y2)], fill=bright, width=1)
+        beam_width = 25  # pixels of soft spread
+        steps = 100  # points along the line
+        for step in range(steps):
+            frac = step / steps
+            cx = int(x1 + dx * frac)
+            cy = int(y1 + dy * frac)
+
+            for offset in range(-beam_width, beam_width + 1, 2):
+                px = int(cx + nx * offset)
+                py = int(cy + ny * offset)
+                if 0 <= px < W and 0 <= py < H:
+                    # Gaussian-ish falloff from center of beam
+                    falloff = math.exp(-(offset * offset) / (2 * (beam_width * 0.4) ** 2))
+                    alpha = falloff * 0.04  # very low opacity
+                    r, g, b = pixels[px, py]
+                    pixels[px, py] = (
+                        min(255, int(r + color_rgb[0] * alpha)),
+                        min(255, int(g + color_rgb[1] * alpha)),
+                        min(255, int(b + color_rgb[2] * alpha)),
+                    )
 
     return img
 
@@ -413,31 +445,16 @@ def fx_scanlines(img, theme, t=0.0, spacing=4, opacity=0.06):
     return img
 
 
-# Scene-to-effects mapping: curated combos for visual rhythm.
-# No blurry effects (fog, chromatic aberration) — crisp and focused.
-EXTRA_FX_MAP = {
-    "title":        ["sparks", "heat_wisps"],        # dramatic opening
-    "context":      ["sparks"],                       # light sparkle
-    "tech_stack":   ["scanlines", "sparks"],          # techy feel
-    "architecture": ["scanlines", "sparks"],          # structured depth
-    "feature":      ["laser_streaks", "sparks"],      # energetic
-    "demo":         ["sparks"],                       # clean showcase
-    "highlights":   ["sparks", "scanlines"],          # techy timeline
-    "stats":        ["heat_wisps", "scanlines"],      # warm glow
-    "closing":      ["sparks", "heat_wisps"],         # grand finale
-    # Comparison/changelog
-    "compare_title":   ["sparks", "heat_wisps"],
-    "compare_setup":   ["sparks"],
-    "compare_repo":    ["laser_streaks"],
-    "compare_verdict": ["sparks", "heat_wisps"],
-    "compare_closing": ["sparks"],
-    "changelog_title": ["sparks", "heat_wisps"],
-    "changelog_pr":    ["laser_streaks"],
-    "changelog_stats": ["heat_wisps", "scanlines"],
-    "changelog_closing": ["sparks"],
-}
+# ── Effect arc ──────────────────────────────────────────────────────────────
+# The video tells a visual story through its effects:
+#
+#   Opening  →  calm  →  building  →  climax  →  finale
+#   (warm)     (cool)    (energy)    (peak)     (everything)
+#
+# Each scene gets a "mood" based on its position. The mood determines
+# which effects appear AND how they're parameterized (color, count, speed).
+# Simple: 5 moods, mapped by position. No randomness.
 
-# Map effect names to functions
 _FX_FUNCS = {
     "sparks": fx_sparks,
     "heat_wisps": fx_heat_wisps,
@@ -445,18 +462,65 @@ _FX_FUNCS = {
     "scanlines": fx_scanlines,
 }
 
+# The five moods and what they look like
+_MOODS = {
+    "opening":  {"fx": ["sparks", "heat_wisps"],  "spark_count": 45, "wisp_count": 5, "accent_idx": 0},
+    "calm":     {"fx": ["sparks"],                 "spark_count": 20, "wisp_count": 0, "accent_idx": 1},
+    "texture":  {"fx": ["scanlines", "sparks"],    "spark_count": 15, "wisp_count": 0, "accent_idx": 2},
+    "energy":   {"fx": ["laser_streaks", "sparks"],"spark_count": 25, "wisp_count": 0, "accent_idx": 3},
+    "warmth":   {"fx": ["heat_wisps", "sparks"],   "spark_count": 30, "wisp_count": 4, "accent_idx": 4},
+    "finale":   {"fx": ["sparks", "heat_wisps", "laser_streaks"], "spark_count": 50, "wisp_count": 6, "accent_idx": 0},
+}
 
-def apply_extra_fx(img, theme, scene_kind, scene_idx, t=0.0):
-    """Apply the curated animated effects for a given scene kind at time t."""
-    effect_names = EXTRA_FX_MAP.get(scene_kind, ["sparks"])
-    for name in effect_names:
+
+def plan_fx_arc(total_scenes):
+    """Plan the full effects arc for a video.
+
+    Returns a list of mood names, one per scene. The arc always starts
+    with 'opening', ends with 'finale', and distributes the middle moods
+    so they cycle without repeating neighbors.
+
+    This is the whole coordination algorithm — simple and predictable.
+    """
+    if total_scenes <= 2:
+        return ["opening"] + ["finale"] * (total_scenes - 1)
+
+    arc = ["opening"]
+
+    # Middle moods cycle through these in order, creating variety
+    middle_cycle = ["calm", "texture", "energy", "warmth"]
+    for i in range(1, total_scenes - 1):
+        arc.append(middle_cycle[(i - 1) % len(middle_cycle)])
+
+    arc.append("finale")
+    return arc
+
+
+def apply_extra_fx(img, theme, scene_kind, scene_idx, t=0.0,
+                   total_scenes=1):
+    """Apply effects for this scene based on the planned arc."""
+    arc = plan_fx_arc(total_scenes)
+    mood_name = arc[scene_idx] if scene_idx < len(arc) else "calm"
+    mood = _MOODS[mood_name]
+
+    for name in mood["fx"]:
         fx_func = _FX_FUNCS.get(name)
-        if fx_func:
-            seed = scene_idx * 1000 + hash(name) % 1000
-            if name == "scanlines":
-                img = fx_func(img, theme, t=t)
-            else:
-                img = fx_func(img, theme, t=t, seed=seed)
+        if not fx_func:
+            continue
+
+        # Each scene uses a different accent color — the mood picks the offset
+        # and the scene_idx shifts it further so even same-mood scenes differ
+        seed = (scene_idx * 137 + mood["accent_idx"] * 31) % 10000
+
+        if name == "sparks":
+            img = fx_func(img, theme, t=t, seed=seed, count=mood["spark_count"])
+        elif name == "heat_wisps":
+            img = fx_func(img, theme, t=t, seed=seed, count=mood["wisp_count"])
+        elif name == "laser_streaks":
+            img = fx_func(img, theme, t=t, seed=seed, count=2)
+        elif name == "scanlines":
+            img = fx_func(img, theme, t=t)
+
     return img
 
 
@@ -1390,7 +1454,8 @@ def render_frames(scene_list, extra=True, theme=None):
             for f_idx in range(num_frames):
                 t = f_idx / max(num_frames - 1, 1)
                 frame = base_img.copy()
-                frame = apply_extra_fx(frame, theme, scene_kind, i, t=t)
+                frame = apply_extra_fx(frame, theme, scene_kind, i, t=t,
+                                      total_scenes=len(scene_list))
                 frame.save(scene_dir / f"frame_{f_idx:04d}.png", "PNG")
 
             scene_outputs.append({
