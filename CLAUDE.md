@@ -2,13 +2,17 @@
 
 ## Git
 
-Before any git push, switch to the `dannybauman` GitHub account:
+This repo is owned by `dannybauman`. **Always** use the dannybauman GitHub account for all git operations — commits and pushes.
+
+Before any git push:
 
 ```bash
 unset GH_TOKEN && gh auth switch --user dannybauman
 ```
 
-The repo is owned by `dannybauman`. Other accounts (goggledefogger, hypepirate) will get 403 errors.
+The `unset GH_TOKEN` is required because a shell-level token overrides `gh auth switch`. Other accounts (goggledefogger, hypepirate) will get 403 errors on this repo.
+
+Never commit as another user. If you see a non-dannybauman commit, rewrite it with `git filter-branch` or `git rebase`.
 
 ## Philosophy
 
