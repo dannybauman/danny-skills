@@ -1,6 +1,6 @@
 # danny-skills
 
-Skills I've built for [Claude Code](https://code.claude.com/docs/en/plugin-marketplaces). Mostly stuff that came out of real work — geo/satellite tools, content pipelines, design workflows. Some are polished, some are scrappy. All actually get used.
+Skills I've built for [Claude Code](https://code.claude.com/docs/en/plugin-marketplaces). Mostly stuff that came out of real work — geo/satellite tools, content pipelines, design workflows. Some are polished, some are scrappy.
 
 ## Install
 
