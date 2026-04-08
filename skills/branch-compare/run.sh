@@ -12,6 +12,8 @@ fi
 BRANCH_ARGS=()
 WAIT=false
 WAIT_TIMEOUT=1800  # 30 min default
+DEFAULT_PAGE=""
+PAGES=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --stop)
@@ -22,6 +24,17 @@ while [[ $# -gt 0 ]]; do
         --env-file)
             export BRANCH_COMPARE_ENV="$2"
             shift 2
+            ;;
+        --page)
+            DEFAULT_PAGE="$2"
+            shift 2
+            ;;
+        --pages)
+            shift
+            while [[ $# -gt 0 && "$1" != --* ]]; do
+                PAGES+=("$1")
+                shift
+            done
             ;;
         --wait)
             WAIT=true
@@ -39,6 +52,8 @@ while [[ $# -gt 0 ]]; do
             echo "  branch names      Compare specific branches"
             echo "  glob pattern      Match branches (e.g. design-variant-*)"
             echo "  --env-file PATH   Load env vars for backend URLs"
+            echo "  --page PATH       Default page to load (e.g. /slides/session08.html)"
+            echo "  --pages SPECS     Pages with labels: \"/path.html:Label\" (multiple allowed)"
             echo "  --wait [SEC]      Wait for branches to have new commits (default: 1800s)"
             echo "  --stop            Stop all running servers"
             echo "  --stop --cleanup  Stop + remove skill-created worktrees"
@@ -148,7 +163,27 @@ if [[ "$RUNNING" -eq 0 ]]; then
     exit 1
 fi
 
-bash "$LIB/switcher.sh" "$SKILL_DIR" "$VARIANTS_JSON"
+# Build page config for switcher
+PAGE_CONFIG="{}"
+if [[ ${#PAGES[@]} -gt 0 ]]; then
+    # Build pages array from --pages args (format: "/path.html:Label")
+    PAGES_JSON="["
+    first=true
+    for spec in "${PAGES[@]}"; do
+        path="${spec%%:*}"
+        label="${spec#*:}"
+        [[ "$path" == "$label" ]] && label="$path"  # no label provided
+        $first || PAGES_JSON="$PAGES_JSON,"
+        PAGES_JSON="$PAGES_JSON{\"path\":$(echo "$path" | jq -R '.'),\"label\":$(echo "$label" | jq -R '.')}"
+        first=false
+    done
+    PAGES_JSON="$PAGES_JSON]"
+    PAGE_CONFIG=$(echo "$PAGE_CONFIG" | jq --argjson p "$PAGES_JSON" '. + {pages: $p, defaultPage: $p[0].path}')
+elif [[ -n "$DEFAULT_PAGE" ]]; then
+    PAGE_CONFIG=$(echo "$PAGE_CONFIG" | jq --arg p "$DEFAULT_PAGE" '. + {defaultPage: $p}')
+fi
+
+bash "$LIB/switcher.sh" "$SKILL_DIR" "$VARIANTS_JSON" "$PAGE_CONFIG"
 
 echo ""
 echo "════════════════════════════════════════"

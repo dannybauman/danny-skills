@@ -88,6 +88,14 @@ detect_serve_cmd() {
         return
     fi
 
+    # 7. Any HTML files anywhere — serve from repo root with python http.server
+    local any_html
+    any_html=$(find "$dir" -maxdepth 6 -name "*.html" -not -path "*/node_modules/*" -not -path "*/.venv/*" -not -path "*/dist/*" -not -path "*/build/*" | head -1)
+    if [[ -n "$any_html" ]]; then
+        echo "cd '$dir' && python3 -m http.server $port"
+        return
+    fi
+
     echo ""
 }
 

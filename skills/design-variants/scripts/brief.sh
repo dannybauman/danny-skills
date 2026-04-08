@@ -29,7 +29,7 @@ if [[ -n "$APP_ROOT" && "$APP_ROOT" != "." && "$APP_ROOT" != "" ]]; then
 elif [[ "$FRAMEWORK" == *"react"* || "$FRAMEWORK" == *"vue"* || "$FRAMEWORK" == *"svelte"* || "$FRAMEWORK" == *"node"* || "$FRAMEWORK" == *"vite"* ]]; then
     SERVE_INSTRUCTIONS="npm install && npm run dev"
 else
-    SERVE_INSTRUCTIONS="Check for package.json or app.py in the project root and run the appropriate dev server."
+    SERVE_INSTRUCTIONS="python3 -m http.server 8000  # static files — open the specific HTML file in browser"
 fi
 
 while IFS= read -r entry; do
@@ -72,6 +72,6 @@ with open('$BRIEF_FILE', 'w') as f:
 "
 
     echo "  Wrote $BRIEF_FILE" >&2
-done < <(jq -c '.[]' "$WT_FILE")
+done < <(jq -c '.[]' "$WT_FILE_ARG")
 
-rm -f "$SCOPE_FILE" "$WT_FILE"
+# Cleanup handled by the caller (run.sh trap)

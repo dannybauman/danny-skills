@@ -11,6 +11,65 @@ fi
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
+# ── Parse arguments ──
+EXPLICIT_FILES=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --files)
+            shift
+            while [[ $# -gt 0 && "$1" != --* ]]; do
+                EXPLICIT_FILES+=("$1")
+                shift
+            done
+            ;;
+        *) shift ;;
+    esac
+done
+
+# ── Fast path: explicit files provided ──
+if [[ ${#EXPLICIT_FILES[@]} -gt 0 ]]; then
+    # Resolve paths relative to repo root
+    RESOLVED=()
+    for f in "${EXPLICIT_FILES[@]}"; do
+        if [[ -d "$REPO_ROOT/$f" ]]; then
+            # Directory — find all frontend files in it
+            while IFS= read -r found; do
+                RESOLVED+=("$(echo "$found" | sed "s|$REPO_ROOT/||")")
+            done < <(find "$REPO_ROOT/$f" -maxdepth 4 \( -name "*.html" -o -name "*.css" -o -name "*.scss" -o -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.vue" -o -name "*.svelte" \) \
+                -not -path "*/node_modules/*" -not -path "*/.venv/*" \
+                -not -path "*/dist/*" -not -path "*/build/*" | sort)
+        elif [[ -f "$REPO_ROOT/$f" ]]; then
+            RESOLVED+=("$f")
+        else
+            echo "  WARN: $f not found, skipping" >&2
+        fi
+    done
+
+    files_json=$(printf '%s\n' "${RESOLVED[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')
+
+    # Detect framework loosely from file extensions
+    FRAMEWORK="static"
+    for f in "${RESOLVED[@]}"; do
+        case "$f" in
+            *.jsx|*.tsx) FRAMEWORK="react"; break ;;
+            *.vue) FRAMEWORK="vue"; break ;;
+            *.svelte) FRAMEWORK="svelte"; break ;;
+        esac
+    done
+
+    cat <<SCOPE_EOF
+{
+  "files_to_redesign": $files_json,
+  "files_off_limits": [],
+  "backend": "",
+  "framework": "$FRAMEWORK",
+  "repo_root": "$REPO_ROOT",
+  "app_root": ""
+}
+SCOPE_EOF
+    exit 0
+fi
+
 # ── Detect active subdirectory from CLAUDE.md ──
 APP_ROOT="$REPO_ROOT"
 CLAUDE_MD=""

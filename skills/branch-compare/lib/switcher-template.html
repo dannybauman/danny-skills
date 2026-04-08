@@ -127,6 +127,7 @@
 
 <script>
 const VARIANTS = __VARIANTS__;
+const PAGE_CONFIG = __PAGE_CONFIG__;
 
 // Common paths to probe for auto-route detection
 const PROBE_PATHS = ['/', '/dashboard', '/dashboard/', '/media', '/media/', '/about', '/about/', '/docs', '/docs/', '/api', '/settings', '/settings/'];
@@ -142,10 +143,17 @@ const FRIENDLY_NAMES = {
 
 let activeVariant = 0;
 let splitVariant = 1;
-let currentPage = '/';
+let currentPage = PAGE_CONFIG.defaultPage || '/';
 let mode = 'single';
 let serverStatus = {};
-let discoveredPages = ['/'];
+let discoveredPages = PAGE_CONFIG.pages ? PAGE_CONFIG.pages.map(function(p) { return p.path; }) : ['/'];
+
+// If pages were explicitly configured, add their labels to FRIENDLY_NAMES
+if (PAGE_CONFIG.pages) {
+  PAGE_CONFIG.pages.forEach(function(p) {
+    FRIENDLY_NAMES[p.path] = p.label;
+  });
+}
 
 async function checkServers() {
   var checks = VARIANTS.map(async function(v) {
@@ -308,7 +316,10 @@ document.querySelectorAll('.mode-btn').forEach(function(btn) {
 checkServers().then(function() {
   render();
   renderPageTabs();
-  probeRoutes();
+  // Only auto-probe routes if no explicit pages were configured
+  if (!PAGE_CONFIG.pages) {
+    probeRoutes();
+  }
 });
 setInterval(checkServers, 10000);
 </script>

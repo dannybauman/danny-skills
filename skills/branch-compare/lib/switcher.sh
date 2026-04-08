@@ -5,6 +5,7 @@ set -euo pipefail
 
 SKILL_DIR="$1"
 VARIANTS_JSON="$2"
+PAGE_CONFIG="${3:-{}}"
 STATE_DIR="$SKILL_DIR/.state"
 mkdir -p "$STATE_DIR"
 
@@ -16,8 +17,8 @@ if [[ ! -f "$TEMPLATE" ]]; then
     exit 1
 fi
 
-# Inject variants JSON into template
-sed "s|__VARIANTS__|$VARIANTS_JSON|g" "$TEMPLATE" > "$OUTPUT"
+# Inject variants JSON and page config into template
+sed -e "s|__VARIANTS__|$VARIANTS_JSON|g" -e "s|__PAGE_CONFIG__|$PAGE_CONFIG|g" "$TEMPLATE" > "$OUTPUT"
 
 echo "Switcher ready: $OUTPUT"
 

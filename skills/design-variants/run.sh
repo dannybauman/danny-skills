@@ -16,6 +16,7 @@ LAUNCH=false
 COMPARE=false
 BASE=""
 INTERACTIVE=false
+SCOPE_FILES=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --pick)
@@ -25,6 +26,13 @@ while [[ $# -gt 0 ]]; do
         --launch) LAUNCH=true; shift ;;
         --compare) COMPARE=true; shift ;;
         --base)   BASE="$2"; shift 2 ;;
+        --files)
+            shift
+            while [[ $# -gt 0 && "$1" != --* ]]; do
+                SCOPE_FILES+=("$1")
+                shift
+            done
+            ;;
         --interactive|-i) INTERACTIVE=true; shift ;;
         --help|-h)
             echo "Usage: design-variants [tool1 tool2 ...] [--base branch] [--launch] [-i]"
@@ -32,6 +40,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  tool names     Which AI tools to use (default: all in tools.json)"
             echo "  --base BRANCH  Branch to fork from (default: main)"
+            echo "  --files PATH   Specific files/directories to redesign (bypasses auto-detection)"
             echo "  --launch       Spawn Claude Code agents automatically"
             echo "  -i             Interactive guided mode"
             echo ""
@@ -61,7 +70,7 @@ if [[ "$INTERACTIVE" == "true" ]]; then
 
     # Step 1: Detect project
     echo "── Step 1: Analyzing your project ──"
-    SCOPE_JSON=$(bash "$SCRIPTS/scope.sh")
+    SCOPE_JSON=$(bash "$SCRIPTS/scope.sh" ${SCOPE_FILES[@]:+--files "${SCOPE_FILES[@]}"})
     FRAMEWORK=$(echo "$SCOPE_JSON" | jq -r '.framework')
     FILE_COUNT=$(echo "$SCOPE_JSON" | jq '.files_to_redesign | length')
     echo "  Detected: $FRAMEWORK project with $FILE_COUNT frontend files"
@@ -129,7 +138,7 @@ echo "── Analyzing project scope ──"
 if [[ -n "${SCOPE_JSON:-}" ]]; then
     echo "$SCOPE_JSON" > "$SCOPE_FILE"
 else
-    bash "$SCRIPTS/scope.sh" > "$SCOPE_FILE"
+    bash "$SCRIPTS/scope.sh" ${SCOPE_FILES[@]:+--files "${SCOPE_FILES[@]}"} > "$SCOPE_FILE"
 fi
 
 echo "── Creating variant worktrees from $BASE ──"
@@ -163,7 +172,19 @@ if [[ "$COMPARE" == "true" || "$LAUNCH" == "true" ]]; then
     if [[ -f "$COMPARE_SCRIPT" ]]; then
         echo ""
         echo "Waiting for variants to be built, then comparing..."
-        bash "$COMPARE_SCRIPT" --wait 'design-variant-*'
+
+        # Build --pages args from scoped files (HTML files only)
+        COMPARE_PAGES=()
+        while IFS= read -r f; do
+            case "$f" in
+                *.html)
+                    label=$(basename "$f" .html)
+                    COMPARE_PAGES+=(--pages "/$f:$label")
+                    ;;
+            esac
+        done < <(jq -r '.files_to_redesign[]' "$SCOPE_FILE" 2>/dev/null)
+
+        bash "$COMPARE_SCRIPT" --wait 'design-variant-*' "${COMPARE_PAGES[@]}"
     else
         echo ""
         echo "Run: /branch-compare --wait design-variant-*"

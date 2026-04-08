@@ -12,8 +12,8 @@ __FILES_LIST__
 __OFF_LIMITS__
 
 ## Constraints
-1. **API endpoints stay the same** — backend routes must not change. You can modify how the frontend is served (e.g. add a build step) but don't change API behavior.
-2. **Choose your stack** — vanilla HTML/CSS/JS or any modern framework (React, Vue, Svelte, Tailwind, etc.). If you add a build step, include a working build config.
+1. **Don't break existing behavior** — if there's a backend, API endpoints stay the same. If it's static HTML, keep the same file structure and paths. You can restyle freely but don't change what the pages do.
+2. **Choose your stack** — vanilla HTML/CSS/JS or any modern framework (React, Vue, Svelte, Tailwind, etc.). For static HTML projects, vanilla CSS/JS is usually the right call. If you add a build step, include a working build config.
 3. **Functional parity** — every existing feature must still work.
 4. **Responsive** — must work on desktop and mobile.
 5. **Self-contained** — the result must be runnable with a simple setup. Document any new setup steps.
@@ -38,3 +38,9 @@ Every AI-generated redesign has these common issues. Fix them before committing:
 
 ## Branch Info
 You're on branch `__BRANCH__`, forked from `__BASE__`. Commit your work when done.
+
+## If You Cannot Commit
+If you don't have permission to run git commands (common when running as a subagent), provide a summary so the parent agent can commit for you:
+1. **Files modified** — list every file you changed or created
+2. **Suggested commit message** — one-line summary of your redesign
+3. **Design direction** — one paragraph describing your aesthetic choices and key decisions
