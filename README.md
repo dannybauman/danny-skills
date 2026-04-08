@@ -33,7 +33,10 @@ claude plugin validate .
 | stac-scaffolder | Scaffolds a STAC (SpatioTemporal Asset Catalog) project using pystac |
 | veda-story-creator | Generates VEDA scrollytelling story MDX files with satellite data visualizations |
 | airtable | Interact with Airtable bases via the REST API — list, search, create, update records and manage attachments |
+| branch-compare | Compare git branches visually side by side with a hot-swappable browser preview |
+| design-variants | Redesign a UI multiple ways at once using different AI tools, then compare |
 | project-video | Generates short highlight reel videos for software projects using Pillow + FFmpeg |
+| slack-to-markdown | Extract a Slack conversation thread from a URL and save it as formatted Markdown |
 
 ## Cross-Surface Compatibility
 
