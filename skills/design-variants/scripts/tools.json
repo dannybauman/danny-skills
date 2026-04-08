@@ -1,0 +1,32 @@
+{
+  "superpowers": {
+    "display": "Superpowers Workflow",
+    "skill": null,
+    "instruction": "Use the full Superpowers workflow: start with /brainstorm to explore design directions, /write-plan to plan the implementation, /execute-plan to build it, and /subagent-driven-development for independent parallel tasks. Use /verification-before-completion to verify visually before committing.",
+    "setup": null
+  },
+  "frontend-design": {
+    "display": "Frontend Design Plugin",
+    "skill": "/frontend-design",
+    "instruction": "Use the /frontend-design skill to guide your redesign. Let the skill's design sensibilities and component patterns drive the aesthetic.",
+    "setup": null
+  },
+  "bmad": {
+    "display": "BMAD Method",
+    "skill": null,
+    "instruction": "Follow the BMAD workflow — Business analysis (who uses this? what do they need?), Market research (study best-in-class chat apps like Slack, Discord, Linear), Architecture (plan the component hierarchy and design tokens), Development (implement). Produce a well-reasoned, distinctive design backed by real product thinking.",
+    "setup": null
+  },
+  "stitch": {
+    "display": "Google Stitch (MCP)",
+    "skill": "/stitch-design",
+    "instruction": "Use the /stitch-design skill and Stitch MCP tools to generate high-fidelity screens, then adapt the output into the existing React components. Create a design system first, then generate screens from it.",
+    "setup": "Requires stitch MCP server configured in Claude Code settings."
+  },
+  "gstack": {
+    "display": "gstack Browse + Design Review",
+    "skill": "/design-review",
+    "instruction": "Use the /design-review skill to audit the current design (run the dev server and browse it), identify visual inconsistencies, spacing issues, hierarchy problems, and AI slop patterns, then fix them iteratively with before/after verification via the headless browser.",
+    "setup": "Requires gstack plugin installed."
+  }
+}

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Branch Compare — Variant Switcher</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e8;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: #16161e;
+    border-bottom: 1px solid #2a2a35;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .controls h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8b8b9e;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-right: 8px;
+  }
+
+  .variant-tabs { display: flex; gap: 4px; }
+
+  .variant-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #2a2a35;
+    background: #1c1c26;
+    color: #9090a0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .variant-tab:hover { background: #242430; color: #c0c0d0; }
+  .variant-tab.active { background: #2d2d5e; border-color: #6366f1; color: #a5b4fc; }
+  .variant-tab .tool-name { font-size: 10px; color: #606070; display: block; margin-top: 1px; }
+  .variant-tab.active .tool-name { color: #7c7cf0; }
+
+  .variant-tab .status {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #ef4444; margin-right: 6px; vertical-align: middle;
+  }
+  .variant-tab .status.running { background: #22c55e; }
+
+  .divider { width: 1px; height: 28px; background: #2a2a35; }
+
+  .page-tabs { display: flex; gap: 4px; }
+  .page-tab {
+    padding: 5px 10px; border-radius: 4px; border: 1px solid transparent;
+    background: transparent; color: #707080; font-size: 12px; cursor: pointer;
+  }
+  .page-tab:hover { color: #b0b0c0; }
+  .page-tab.active { color: #c0c0d0; border-color: #3a3a45; background: #1c1c26; }
+
+  .mode-toggle { margin-left: auto; display: flex; gap: 4px; }
+  .mode-btn {
+    padding: 5px 10px; border-radius: 4px; border: 1px solid #2a2a35;
+    background: #1c1c26; color: #707080; font-size: 12px; cursor: pointer;
+  }
+  .mode-btn.active { background: #242430; color: #c0c0d0; border-color: #3a3a45; }
+
+  .viewport { flex: 1; display: flex; position: relative; overflow: hidden; }
+  .viewport iframe { border: none; background: #0f0f14; }
+  .viewport.single iframe { width: 100%; height: 100%; }
+  .viewport.split { gap: 2px; }
+  .viewport.split .pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .viewport.split .pane-label {
+    padding: 4px 10px; background: #16161e; font-size: 11px;
+    color: #8b8b9e; text-align: center; border-bottom: 1px solid #2a2a35; flex-shrink: 0;
+  }
+  .viewport.split .pane iframe { flex: 1; width: 100%; }
+
+  .placeholder {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%; color: #505060; font-size: 14px;
+    flex-direction: column; gap: 8px;
+  }
+  .placeholder code {
+    background: #1c1c26; padding: 4px 10px; border-radius: 4px;
+    font-size: 12px; color: #8b8b9e;
+  }
+
+  .split-picker { display: none; gap: 4px; }
+  .split-picker.visible { display: flex; }
+  .split-picker .variant-tab { font-size: 11px; padding: 4px 10px; }
+  .split-picker .variant-tab.active { background: #2d4e2d; border-color: #22c55e; color: #86efac; }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <h1>Branch Compare</h1>
+  <div class="variant-tabs" id="variantTabs"></div>
+  <div class="divider"></div>
+  <div class="page-tabs" id="pageTabs"></div>
+  <div class="divider"></div>
+  <span style="font-size:11px; color:#505060;">Compare:</span>
+  <div class="split-picker" id="splitPicker"></div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" data-mode="single">Single</button>
+    <button class="mode-btn" data-mode="split">Side by Side</button>
+  </div>
+</div>
+
+<div class="viewport single" id="viewport"></div>
+
+<script>
+const VARIANTS = __VARIANTS__;
+
+// Common paths to probe for auto-route detection
+const PROBE_PATHS = ['/', '/dashboard', '/dashboard/', '/media', '/media/', '/about', '/about/', '/docs', '/docs/', '/api', '/settings', '/settings/'];
+const FRIENDLY_NAMES = {
+  '/': 'Landing',
+  '/dashboard': 'Dashboard', '/dashboard/': 'Dashboard',
+  '/media': 'Media', '/media/': 'Media',
+  '/about': 'About', '/about/': 'About',
+  '/docs': 'Docs', '/docs/': 'Docs',
+  '/api': 'API',
+  '/settings': 'Settings', '/settings/': 'Settings'
+};
+
+let activeVariant = 0;
+let splitVariant = 1;
+let currentPage = '/';
+let mode = 'single';
+let serverStatus = {};
+let discoveredPages = ['/'];
+
+async function checkServers() {
+  var checks = VARIANTS.map(async function(v) {
+    try {
+      await fetch(v.url + '/', { mode: 'no-cors', signal: AbortSignal.timeout(2000) });
+      serverStatus[v.name] = true;
+    } catch(e) {
+      serverStatus[v.name] = false;
+    }
+  });
+  await Promise.all(checks);
+  renderTabs();
+}
+
+async function probeRoutes() {
+  // Use first running variant to probe for valid routes
+  var runningVariant = VARIANTS.find(function(v) { return serverStatus[v.name]; });
+  if (!runningVariant) return;
+
+  var found = ['/'];
+  var probes = PROBE_PATHS.filter(function(p) { return p !== '/'; }).map(async function(path) {
+    try {
+      var resp = await fetch(runningVariant.url + path, { mode: 'no-cors', signal: AbortSignal.timeout(2000) });
+      found.push(path);
+    } catch(e) {
+      // not available
+    }
+  });
+  await Promise.all(probes);
+
+  // Deduplicate (prefer without trailing slash)
+  var seen = {};
+  var deduped = [];
+  found.forEach(function(p) {
+    var key = p.replace(/\/$/, '') || '/';
+    if (!seen[key]) {
+      seen[key] = true;
+      deduped.push(p);
+    }
+  });
+  discoveredPages = deduped;
+  renderPageTabs();
+}
+
+function renderPageTabs() {
+  var container = document.getElementById('pageTabs');
+  container.replaceChildren();
+
+  discoveredPages.forEach(function(page) {
+    var btn = document.createElement('button');
+    btn.className = 'page-tab' + (page === currentPage ? ' active' : '');
+    btn.textContent = FRIENDLY_NAMES[page] || page;
+    btn.onclick = function() {
+      currentPage = page;
+      renderPageTabs();
+      render();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function createTab(v, index, isActive, onClick) {
+  var tab = document.createElement('button');
+  tab.className = 'variant-tab' + (isActive ? ' active' : '');
+
+  var dot = document.createElement('span');
+  dot.className = 'status' + (serverStatus[v.name] ? ' running' : '');
+  tab.appendChild(dot);
+
+  tab.appendChild(document.createTextNode(v.name));
+
+  if (v.branch) {
+    var toolSpan = document.createElement('span');
+    toolSpan.className = 'tool-name';
+    toolSpan.textContent = v.branch;
+    tab.appendChild(toolSpan);
+  }
+
+  tab.onclick = onClick;
+  return tab;
+}
+
+function renderTabs() {
+  var tabsEl = document.getElementById('variantTabs');
+  var splitEl = document.getElementById('splitPicker');
+  tabsEl.replaceChildren();
+  splitEl.replaceChildren();
+
+  VARIANTS.forEach(function(v, i) {
+    tabsEl.appendChild(createTab(v, i, i === activeVariant, function() {
+      activeVariant = i; render(); renderTabs();
+    }));
+
+    var stab = document.createElement('button');
+    stab.className = 'variant-tab' + (i === splitVariant ? ' active' : '');
+    stab.style.fontSize = '11px';
+    stab.style.padding = '4px 10px';
+    if (i === splitVariant) {
+      stab.style.background = '#2d4e2d';
+      stab.style.borderColor = '#22c55e';
+      stab.style.color = '#86efac';
+    }
+    stab.textContent = v.name;
+    stab.onclick = function() { splitVariant = i; render(); renderTabs(); };
+    splitEl.appendChild(stab);
+  });
+}
+
+function makeIframe(variantIdx) {
+  var v = VARIANTS[variantIdx];
+  if (!serverStatus[v.name]) {
+    var div = document.createElement('div');
+    div.className = 'placeholder';
+    var msg = document.createElement('span');
+    msg.textContent = 'Server not running for ' + v.name;
+    var code = document.createElement('code');
+    code.textContent = v.url;
+    div.appendChild(msg);
+    div.appendChild(code);
+    return div;
+  }
+  var iframe = document.createElement('iframe');
+  iframe.src = v.url + currentPage;
+  return iframe;
+}
+
+function render() {
+  var vp = document.getElementById('viewport');
+  vp.replaceChildren();
+
+  if (mode === 'single') {
+    vp.className = 'viewport single';
+    vp.appendChild(makeIframe(activeVariant));
+  } else {
+    vp.className = 'viewport split';
+
+    [activeVariant, splitVariant].forEach(function(idx) {
+      var pane = document.createElement('div');
+      pane.className = 'pane';
+      var label = document.createElement('div');
+      label.className = 'pane-label';
+      label.textContent = VARIANTS[idx].name + ' (' + VARIANTS[idx].branch + ')';
+      pane.appendChild(label);
+      pane.appendChild(makeIframe(idx));
+      vp.appendChild(pane);
+    });
+  }
+}
+
+document.querySelectorAll('.mode-btn').forEach(function(btn) {
+  btn.onclick = function() {
+    document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    mode = btn.dataset.mode;
+    document.getElementById('splitPicker').classList.toggle('visible', mode === 'split');
+    render();
+  };
+});
+
+checkServers().then(function() {
+  render();
+  renderPageTabs();
+  probeRoutes();
+});
+setInterval(checkServers, 10000);
+</script>
+</body>
+</html>
