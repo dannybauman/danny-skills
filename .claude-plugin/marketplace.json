@@ -55,6 +55,27 @@
       "description": "Generates short highlight reel videos for software projects. Use when the user wants a project video, demo reel, highlight video, showcase, or changelog video for a GitHub repo.",
       "version": "1.0.0",
       "license": "MIT"
+    },
+    {
+      "name": "branch-compare",
+      "source": "./skills/branch-compare",
+      "description": "Compare git branches visually side by side. Use when the user wants to compare branches, show versions, see differences, do a visual diff, or view before and after.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "design-variants",
+      "source": "./skills/design-variants",
+      "description": "Redesign a UI multiple ways at once using different AI tools, then compare. Use when the user wants a redesign, makeover, design options, multiple versions, design shootout, or visual overhaul.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "slack-to-markdown",
+      "source": "./skills/slack-to-markdown",
+      "description": "Extract a Slack conversation thread from a URL and save it as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion.",
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }
