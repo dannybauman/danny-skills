@@ -1,49 +1,39 @@
-# Danny's DS Skills
+# danny-skills
 
-Claude Code [plugin marketplace](https://code.claude.com/docs/en/plugin-marketplaces) with work-related [Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
+Skills I've built for [Claude Code](https://code.claude.com/docs/en/plugin-marketplaces). Mostly stuff that came out of real work — geo/satellite tools, content pipelines, design workflows. Some are polished, some are scrappy. All actually get used.
 
-## Installation
-
-Add the marketplace and install individual skills:
+## Install
 
 ```bash
 /plugin marketplace add dannybauman/danny-skills
 /plugin install skill-name@danny-skills
 ```
 
-Update all plugins to latest:
+Update everything:
 
 ```bash
 /plugin marketplace update danny-skills
 ```
 
-Validate the marketplace locally:
+## Skills
 
-```bash
-claude plugin validate .
-```
-
-## Available Skills
-
-| Skill | Description |
+| Skill | What it does |
 |:------|:------------|
-| devseed-writing | Guide for writing and formatting blog posts and project pages for the Development Seed website |
-| map-to-poster | Transforms cities into minimalist map posters from OpenStreetMap data |
-| satellite-image | Fetch recent Sentinel-2 satellite imagery from Microsoft Planetary Computer |
-| stac-scaffolder | Scaffolds a STAC (SpatioTemporal Asset Catalog) project using pystac |
-| veda-story-creator | Generates VEDA scrollytelling story MDX files with satellite data visualizations |
-| airtable | Interact with Airtable bases via the REST API — list, search, create, update records and manage attachments |
+| airtable | Talk to Airtable bases — list, search, create, update records and manage attachments |
 | branch-compare | Compare git branches visually side by side with a hot-swappable browser preview |
-| design-variants | Redesign a UI multiple ways at once using different AI tools, then compare |
-| project-video | Generates short highlight reel videos for software projects using Pillow + FFmpeg |
-| slack-to-markdown | Extract a Slack conversation thread from a URL and save it as formatted Markdown |
+| design-variants | Redesign a UI multiple ways at once using different AI tools, then compare them |
+| devseed-writing | Write and format blog posts and project pages for the Dev Seed website |
+| map-to-poster | Turn cities into minimalist map posters from OpenStreetMap data |
+| project-video | Generate short highlight reel videos for software projects |
+| satellite-image | Pull recent Sentinel-2 imagery from Microsoft Planetary Computer |
+| slack-to-markdown | Grab a Slack thread from a URL and save it as clean Markdown |
+| stac-scaffolder | Scaffold a STAC (SpatioTemporal Asset Catalog) project with pystac |
+| veda-story-creator | Generate VEDA scrollytelling story MDX files with satellite data visualizations |
 
-## Cross-Surface Compatibility
+## Good to know
 
-Skills in this marketplace are designed primarily for **Claude Code** (full network access, local package installation via `run.sh`). Skills can also be uploaded to **Claude.ai** via `package.sh` — note the 200-file / 8MB limit and that Claude.ai skills are per-user (not shared org-wide). The **Claude API** has no network access and no runtime package installation, so script-based skills won't work there without adaptation.
-
-See the [official docs on where skills work](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview#where-skills-work) for details.
+These are built for **Claude Code** — they assume local network access and can install their own deps via `run.sh`. You can also zip them up for **Claude.ai** (`package.sh`), but that surface has a 200-file / 8MB limit and skills are per-user. The **Claude API** has no network access, so the script-heavy ones won't work there without rework.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for skill authoring conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
