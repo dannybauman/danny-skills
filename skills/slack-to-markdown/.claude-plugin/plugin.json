@@ -1,0 +1,8 @@
+{
+  "name": "slack-to-markdown",
+  "description": "Extract a Slack conversation thread from a URL and save it as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

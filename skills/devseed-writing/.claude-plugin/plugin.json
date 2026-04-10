@@ -1,0 +1,8 @@
+{
+  "name": "devseed-writing",
+  "description": "Guide for writing blog posts and project pages for the Development Seed website. Use when creating or editing content in content/blog/ or content/project/ directories, or when the user asks for help writing blog posts or project pages.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

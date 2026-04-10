@@ -1,0 +1,9 @@
+{
+  "name": "branch-compare",
+  "version": "1.1.0",
+  "description": "Compare git branches visually side by side with a hot-swappable browser preview.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

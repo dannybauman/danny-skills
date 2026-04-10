@@ -11,70 +11,70 @@
       "name": "devseed-writing",
       "source": "./skills/devseed-writing",
       "description": "Guide for writing blog posts and project pages for the Development Seed website. Use when creating or editing content in content/blog/ or content/project/ directories, or when the user asks for help writing blog posts or project pages.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "map-to-poster",
       "source": "./skills/map-to-poster",
       "description": "Transforms cities into minimalist map posters. Use when the user asks to create a map poster, generate city-based art, or visualize a geographic area using MapToPoster.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "satellite-image",
       "source": "./skills/satellite-image",
       "description": "Fetch recent Sentinel-2 satellite imagery from Microsoft Planetary Computer. Use when the user wants satellite photos, earth observation images, or remote sensing data for a location.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "stac-scaffolder",
       "source": "./skills/stac-scaffolder",
       "description": "Scaffolds a STAC (SpatioTemporal Asset Catalog) project using pystac. Use when the user wants to create a STAC catalog, organize geospatial datasets, or generate metadata for satellite imagery and earth observation data.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "veda-story-creator",
       "source": "./skills/veda-story-creator",
       "description": "Generates VEDA scrollytelling story MDX files with satellite data visualizations. Use when the user wants to create a new data story, write a story about an earth science topic, or generate an MDX file for the stories directory.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "airtable",
       "source": "./skills/airtable",
       "description": "Interact with Airtable bases via the REST API. Use when the user wants to list, search, create, or update Airtable records, manage attachments, or query tables.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "project-video",
       "source": "./skills/project-video",
       "description": "Generates short highlight reel videos for software projects. Use when the user wants a project video, demo reel, highlight video, showcase, or changelog video for a GitHub repo.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "branch-compare",
       "source": "./skills/branch-compare",
       "description": "Compare git branches visually side by side. Use when the user wants to compare branches, show versions, see differences, do a visual diff, or view before and after.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "design-variants",
       "source": "./skills/design-variants",
       "description": "Redesign a UI multiple ways at once using different AI tools, then compare. Use when the user wants a redesign, makeover, design options, multiple versions, design shootout, or visual overhaul.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     },
     {
       "name": "slack-to-markdown",
       "source": "./skills/slack-to-markdown",
       "description": "Extract a Slack conversation thread from a URL and save it as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "license": "MIT"
     }
   ]

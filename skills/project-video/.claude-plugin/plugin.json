@@ -1,0 +1,8 @@
+{
+  "name": "project-video",
+  "description": "Generates short highlight reel videos for software projects. Use when the user wants a project video, demo reel, highlight video, showcase, or changelog video for a GitHub repo.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

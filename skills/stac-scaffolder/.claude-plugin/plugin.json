@@ -1,0 +1,8 @@
+{
+  "name": "stac-scaffolder",
+  "description": "Scaffolds a STAC (SpatioTemporal Asset Catalog) project using pystac. Use when the user wants to create a STAC catalog, organize geospatial datasets, or generate metadata for satellite imagery and earth observation data.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

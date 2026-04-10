@@ -1,0 +1,8 @@
+{
+  "name": "map-to-poster",
+  "description": "Transforms cities into minimalist map posters. Use when the user asks to create a map poster, generate city-based art, or visualize a geographic area using MapToPoster.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}
