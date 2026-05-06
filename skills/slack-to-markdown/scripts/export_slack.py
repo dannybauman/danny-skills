@@ -103,6 +103,7 @@ def main():
     parser = argparse.ArgumentParser(description="Export Slack conversation to Markdown")
     parser.add_argument("url", help="Slack message or thread URL")
     parser.add_argument("--output", help="Optional output filename")
+    parser.add_argument("--output-dir", help="Optional output directory (default: <skill>/output)")
     parser.add_argument("--token", help="Slack API token (xoxp- or xoxb-)")
     args = parser.parse_args()
 
@@ -135,17 +136,27 @@ def main():
         except SlackApiError:
             pass
 
-        # Collect user IDs to resolve names
+        # Collect user IDs to resolve names — both message authors AND
+        # any <@U_id> mentions inside message text. Without the body scan,
+        # @-mentions in the rendered output stay as raw IDs.
         user_ids = set()
+        mention_pattern = re.compile(r'<@([A-Z0-9]+)>')
         for msg in messages:
             if "user" in msg:
                 user_ids.add(msg["user"])
+            text = msg.get("text", "") or ""
+            user_ids.update(mention_pattern.findall(text))
 
-        print(f"[*] Resolving {len(user_ids)} users...")
+        print(f"[*] Resolving {len(user_ids)} users (authors + body @-mentions)...")
         for uid in user_ids:
             try:
                 user_info = client.users_info(user=uid)
-                user_map[uid] = "@" + user_info["user"]["profile"]["display_name"] or user_info["user"]["real_name"]
+                profile = user_info["user"].get("profile", {})
+                # display_name can be empty string for users who never set one;
+                # fall back to real_name. The previous "@" + dn or rn precedence
+                # silently produced "@" when dn was empty.
+                name = profile.get("display_name") or user_info["user"].get("real_name") or uid
+                user_map[uid] = f"@{name}"
             except SlackApiError:
                 user_map[uid] = f"@{uid}"
 
@@ -181,8 +192,11 @@ def main():
         else:
             filename = f"slack_export_{channel_id}_{thread_ts.replace('.', '')}.md"
 
-        output_dir = _skill_dir / "output"
-        output_dir.mkdir(exist_ok=True)
+        if args.output_dir:
+            output_dir = Path(args.output_dir).expanduser().resolve()
+        else:
+            output_dir = _skill_dir / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / filename
 
         with open(output_path, "w") as f:

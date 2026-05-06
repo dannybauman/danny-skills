@@ -88,7 +88,8 @@ Copy the link to the message or thread you want to export. It should look like:
 ```
 
 Optional arguments:
-- `--output [filename]`: Specify a custom output filename in the `output/` directory.
+- `--output [filename]`: Specify a custom output filename.
+- `--output-dir [path]`: Specify a custom output directory. Default is `output/` next to the skill. Use this to land files directly in a vault path like `~/Source/my-vault/sources/slack/`.
 
 ### 3. Retrieve the Markdown
 The file will be saved in the `output/` directory. Claude can then read this file to summarize it or perform further analysis.
@@ -96,7 +97,7 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 ## How it works
 1.  **URL Parsing**: Extracts the Channel ID and Message Timestamp (thread_ts) from the URL. Note: Slack URLs pad the timestamp and remove the dot (e.g., `p1700000000123456` -> `1700000000.123456`).
 2.  **API Fetching**: Uses `conversations.replies` to fetch the entire thread.
-3.  **User Resolution**: Fetches user names to replace IDs (e.g., `<@U123>` -> `@Danny`).
+3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear.
 4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown.
 
 ## Tips & Lessons Learned
