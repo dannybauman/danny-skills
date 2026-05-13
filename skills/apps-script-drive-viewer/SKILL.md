@@ -121,41 +121,75 @@ The user has:
 
 If any of those is missing, the next question is about that.
 
-## Closing output style (CRITICAL — most builds fail here)
+## Deploy flow: auto-run what you can, ask for what's irreducibly manual
 
-When the file generation step is done and the user has to take over with manual steps (clasp create, deploy, etc.), the closing message MUST:
+After files are written, **do NOT hand the user a list of paste-into-terminal commands.** You have a shell — use it. Run the CLI work yourself, narrating as you go. Only ask the user for things that genuinely require a human (browser sign-ins, editor UI clicks, visual verification).
 
-- Lead with ONE plain-language sentence describing what was built
-- Give 4-6 **numbered** next steps, each ONE concrete action with the command if applicable
-- Bake in the user's actual values (their file ID, project name, etc.) — not placeholders
-- End with a "Done when [X]" success line + a "If stuck, [Y]" escape hatch
-- Use plain language. **No technical jargon, line numbers, file diff narration, or PR-description style change logs.** First-time users don't know what "USER_DEPLOYING", "DriveApp.getFileById", "Index.html:1660", "HtmlService template", or "OAuth scopes" mean
-- NEVER report "bugs fixed in the starter while adapting it" or suggest back-ports unless you've actually compared against the current starter file. Hallucinated bug-fix narration erodes trust
+### The auto-run-able things (do these via Bash, narrate in one short sentence each)
 
-**Bad (what NOT to write):**
-> Built. Project lives at X. Code.gs:23 — doGet(e) reads DATA_FILE_ID via DriveApp.getFileById, inlines into Index template (10-min cache, ?refresh=1 busts). Index.html:1660 — `<script src="...">` swapped for `<?!= dataContent ?>`. appsscript.json — executeAs: USER_DEPLOYING + access: DOMAIN is the auth boundary. One bug fixed in the starter while adapting...
-> 
-> Next step is yours: cd X && clasp create --type webapp --title "...", upload Y to Drive, paste file ID into Script Properties, deploy domain-restricted.
+| Action | Command | When |
+|---|---|---|
+| Check Node installed | `node --version` | Always, first |
+| Check npm installed | `npm --version` | If Node found |
+| Check clasp installed | `which clasp` or `clasp --version` | Always |
+| Install clasp if missing | `npm install -g @google/clasp` | If clasp not found. May prompt for sudo |
+| Check clasp login state | `clasp login --status` | Always |
+| Create Apps Script project | `cd <project-dir> && clasp create --type webapp --title "..."` | After login |
+| Push local code | `clasp push` | After create |
+| Deploy | `clasp deploy --description "Initial deploy"` | After Script Properties are set |
+| Get URL | parse from clasp deploy output | After deploy |
 
-**Good (what to write):**
-> Built. The Apps Script project is in `recruiting/nasa-staffing-mockup/apps-script/`. The matrix tool's data-loading line was swapped to read `matrix-data.js` from Drive at request time.
+For all of these: run via Bash, show abbreviated output (last 5-10 lines is plenty), confirm success, move to the next thing. Don't ask the user to do these.
+
+### The genuinely-manual things (ask the user, one at a time)
+
+1. **clasp login** (when not logged in) — `clasp login` opens a browser. User signs in. You wait for them to return
+2. **Setting `DATA_FILE_ID` in Script Properties** — Apps Script editor UI, 5 clicks. After running `clasp open`, give them:
+   > In the Apps Script editor (just opened):
+   > 1. Click ⚙️ Project Settings (left sidebar)
+   > 2. Scroll to Script Properties at the bottom
+   > 3. Click "Add script property"
+   > 4. Property: `DATA_FILE_ID`, Value: `<the file ID they gave you earlier>`
+   > 5. Click Save script properties
+   > Tell me when it's saved.
+3. **First-run OAuth consent for Drive scope** — happens automatically when they first open the deployed URL. Tell them: "Open the URL — you'll see a Google permission prompt asking for Drive read access. Accept it. Then the matrix should render."
+4. **Visual verification** — they open the URL, confirm the tool renders
+
+### Cadence
+
+After files are built, the **first message** is a consent-check + summary of who-does-what:
+
+> Built. Want me to run the deploy for you? I'll install clasp if needed, create the Apps Script project, push the code, and deploy it. You'll do three things: sign into clasp when a browser opens, paste the data file ID into the Apps Script editor (one screen of clicks), and accept a Google permission prompt when you first open the URL. About 5-8 minutes total.
+
+If they say go: proceed. Each subsequent message is **either** (a) "I just did X, here's the result, doing Y next" **or** (b) "Your turn — do X, tell me when done." Never both in the same message. Never multi-action.
+
+### Auto-run rules
+
+- **Always check before installing.** Don't run `npm install -g @google/clasp` if `which clasp` already finds it. Report what's already there
+- **Surface failures, don't bury them.** If a command exits non-zero, paste the error to the user and ask how they want to proceed. Don't silently retry
+- **Use the user's actual values.** Their data file ID, project name, target directory. Never use placeholders in a step you're presenting to them
+- **No "and" or `&&` chains in a single message.** If two CLI commands need to happen, run them both via Bash internally, but narrate the second one when the first finishes
+
+### Closing message after the URL works
+
+When the user confirms the URL renders:
+
+> Done. The URL is stable — share it with your team. They'll need to be signed into their @developmentseed.com account when they open it.
 >
-> Five steps from here to a live URL:
+> Two things for later:
+> - **Data updates**: edit `matrix-data.js` in Drive. The viewer reads fresh on each load (cached 10 min); add `?refresh=1` to bust the cache immediately.
+> - **Code updates**: edit locally, `clasp push`, then in the Apps Script editor go to Deploy → Manage deployments → pencil icon → "New version" → Deploy. Keeps the URL stable. (Don't click "New deployment" — that makes a new URL.)
 >
-> 1. **Open a terminal in the project folder:** `cd recruiting/nasa-staffing-mockup/apps-script`
-> 2. **Log in to clasp** (if you haven't): `clasp login` — pick your @developmentseed.com account in the browser
-> 3. **Create the Apps Script project:** `clasp create --type webapp --title "NASA Staffing Matrix"` (pick "Standalone" if it asks). This writes `.clasp.json` automatically.
-> 4. **Push the code:** `clasp push`
-> 5. **Configure + deploy via the browser:** `clasp open` to open the editor, then:
->    - **Project Settings → Script Properties** → Add `DATA_FILE_ID` = `<the file ID you gave me earlier>`
->    - **Deploy → New deployment → Type: Web app**, **Execute as: Me**, **Who has access: Anyone within Development Seed** → Deploy
->    - Accept the OAuth Drive permission when prompted
->    - Copy the Web app URL from the success dialog
->
-> **Done when:** opening that URL in an incognito window (signed into your @developmentseed.com account) shows the matrix.
->
-> **If you get stuck:** the project's `README.md` has the same steps with verification at each one. Slack me with what error you're seeing.
+> Same flow lives in `README.md` in the project folder.
 
-The good version uses bold step titles, concrete commands with the user's actual values inlined, and reserves jargon for parentheticals only. The "Done when" line gives the user something to test against.
+### Things to NOT do in the closing flow
 
-This output style is the difference between "the tool works" and "the tool works AND the user knows how to use it."
+- **No upfront "what's built" enumeration** of files. They exist, that's enough
+- **No PR-description-style change logs** ("Code.gs:23 — doGet(e) reads DATA_FILE_ID...")
+- **No hallucinated bug-fix narration** ("fixed dead code in the starter") unless you actually diffed against the current starter file
+- **No previewing all N steps upfront.** "5 steps, here they are: 1, 2, 3, 4, 5" defeats the one-thing-at-a-time pattern. The user can ask "how many more steps?" if they want a count
+- **No jargon-heavy bullets.** "DriveApp.getFileById via DATA_FILE_ID script property" is for the README, not for chat with a first-time user
+
+### Fallback for environments without Bash access
+
+If the skill is invoked in a context that can't run shell commands (web-only Claude, restricted permissions, etc.), fall back to the older paste-commands pattern: one command per turn, the user runs it, reports back. Even in this fallback, **never hand the user a numbered list of all commands at once.** One step per turn, every time.
