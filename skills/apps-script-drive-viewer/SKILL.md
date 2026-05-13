@@ -120,3 +120,42 @@ The user has:
 - A README they can re-read when they come back to update later
 
 If any of those is missing, the next question is about that.
+
+## Closing output style (CRITICAL — most builds fail here)
+
+When the file generation step is done and the user has to take over with manual steps (clasp create, deploy, etc.), the closing message MUST:
+
+- Lead with ONE plain-language sentence describing what was built
+- Give 4-6 **numbered** next steps, each ONE concrete action with the command if applicable
+- Bake in the user's actual values (their file ID, project name, etc.) — not placeholders
+- End with a "Done when [X]" success line + a "If stuck, [Y]" escape hatch
+- Use plain language. **No technical jargon, line numbers, file diff narration, or PR-description style change logs.** First-time users don't know what "USER_DEPLOYING", "DriveApp.getFileById", "Index.html:1660", "HtmlService template", or "OAuth scopes" mean
+- NEVER report "bugs fixed in the starter while adapting it" or suggest back-ports unless you've actually compared against the current starter file. Hallucinated bug-fix narration erodes trust
+
+**Bad (what NOT to write):**
+> Built. Project lives at X. Code.gs:23 — doGet(e) reads DATA_FILE_ID via DriveApp.getFileById, inlines into Index template (10-min cache, ?refresh=1 busts). Index.html:1660 — `<script src="...">` swapped for `<?!= dataContent ?>`. appsscript.json — executeAs: USER_DEPLOYING + access: DOMAIN is the auth boundary. One bug fixed in the starter while adapting...
+> 
+> Next step is yours: cd X && clasp create --type webapp --title "...", upload Y to Drive, paste file ID into Script Properties, deploy domain-restricted.
+
+**Good (what to write):**
+> Built. The Apps Script project is in `recruiting/nasa-staffing-mockup/apps-script/`. The matrix tool's data-loading line was swapped to read `matrix-data.js` from Drive at request time.
+>
+> Five steps from here to a live URL:
+>
+> 1. **Open a terminal in the project folder:** `cd recruiting/nasa-staffing-mockup/apps-script`
+> 2. **Log in to clasp** (if you haven't): `clasp login` — pick your @developmentseed.com account in the browser
+> 3. **Create the Apps Script project:** `clasp create --type webapp --title "NASA Staffing Matrix"` (pick "Standalone" if it asks). This writes `.clasp.json` automatically.
+> 4. **Push the code:** `clasp push`
+> 5. **Configure + deploy via the browser:** `clasp open` to open the editor, then:
+>    - **Project Settings → Script Properties** → Add `DATA_FILE_ID` = `<the file ID you gave me earlier>`
+>    - **Deploy → New deployment → Type: Web app**, **Execute as: Me**, **Who has access: Anyone within Development Seed** → Deploy
+>    - Accept the OAuth Drive permission when prompted
+>    - Copy the Web app URL from the success dialog
+>
+> **Done when:** opening that URL in an incognito window (signed into your @developmentseed.com account) shows the matrix.
+>
+> **If you get stuck:** the project's `README.md` has the same steps with verification at each one. Slack me with what error you're seeing.
+
+The good version uses bold step titles, concrete commands with the user's actual values inlined, and reserves jargon for parentheticals only. The "Done when" line gives the user something to test against.
+
+This output style is the difference between "the tool works" and "the tool works AND the user knows how to use it."
