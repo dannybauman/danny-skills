@@ -76,6 +76,13 @@
       "description": "Extract a Slack conversation thread from a URL and save it as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion.",
       "version": "1.1.0",
       "license": "MIT"
+    },
+    {
+      "name": "apps-script-drive-viewer",
+      "source": "./skills/apps-script-drive-viewer",
+      "description": "Build a Google Apps Script web app that reads data from Google Drive and serves HTML, restricted to a Google Workspace domain. Use when a team wants a click-to-view URL for confidential data without GitHub Pages or download-and-open friction.",
+      "version": "0.1.0",
+      "license": "MIT"
     }
   ]
 }
