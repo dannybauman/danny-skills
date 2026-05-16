@@ -1,9 +1,9 @@
 ---
-name: universal-agent-bridge
+name: port-to-open-standard
 description: "Use this skill to convert proprietary IDE commands (like Claude Code custom slash commands) into cross-platform skills, commands, or MCP servers that work across Antigravity, Claude Code, and Cursor. Scaffold new standard workflows."
 ---
 
-# Universal Agent Bridge
+# Port to Open Standard
 
 This skill helps developers and AI agents escape vendor lock-in by scaffolding standard, cross-platform agent capabilities. 
 
@@ -26,7 +26,7 @@ To scaffold a new cross-platform extension, run the python script using `uv run`
 
 **Example:**
 ```bash
-uv run /Users/Danny/Source/danny-skills/skills/universal-agent-bridge/scaffold_bridge.py --type skill --name "deploy-worker" --dest "./skills/deploy-worker"
+uv run /Users/Danny/Source/danny-skills/skills/port-to-open-standard/scaffold_port.py --type skill --name "deploy-worker" --dest "./skills/deploy-worker"
 ```
 
 ## Steps for the Agent
@@ -34,5 +34,5 @@ uv run /Users/Danny/Source/danny-skills/skills/universal-agent-bridge/scaffold_b
 1. Ask the user what kind of proprietary command or new workflow they want to build/convert.
 2. Decide whether it needs to be an MCP server (data fetching/tooling), a Command (deterministic script), or a Skill (orchestration/SOP).
 3. Determine the destination directory.
-4. Execute the `scaffold_bridge.py` script with the correct arguments.
+4. Execute the `scaffold_port.py` script with the correct arguments.
 5. Review the generated files with the user and refine the logic.

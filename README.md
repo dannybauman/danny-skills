@@ -24,11 +24,11 @@ Update everything:
 | design-variants | Redesign a UI multiple ways at once using different AI tools, then compare them |
 | devseed-writing | Write and format blog posts and project pages for the Dev Seed website |
 | map-to-poster | Turn cities into minimalist map posters from OpenStreetMap data |
+| port-to-open-standard | Scaffold cross-platform agent skills, commands, and MCP servers to escape vendor lock-in |
 | project-video | Generate short highlight reel videos for software projects |
 | satellite-image | Pull recent Sentinel-2 imagery from Microsoft Planetary Computer |
 | slack-to-markdown | Grab a Slack thread from a URL and save it as clean Markdown |
 | stac-scaffolder | Scaffold a STAC (SpatioTemporal Asset Catalog) project with pystac |
-| universal-agent-bridge | Scaffold cross-platform agent skills, commands, and MCP servers to escape vendor lock-in |
 | veda-story-creator | Generate VEDA scrollytelling story MDX files with satellite data visualizations |
 
 ## Good to know
