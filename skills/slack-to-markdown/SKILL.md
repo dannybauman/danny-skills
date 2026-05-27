@@ -1,11 +1,14 @@
 ---
 name: slack-to-markdown
-description: Extracts a Slack conversation thread from a URL and saves it as a formatted Markdown file. Use this when the user wants to archive, share, or summarize a Slack discussion.
+description: Extracts Slack conversations — threads or channel message ranges — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports channel URLs with --since/--until date filtering.
 ---
 
 # Slack-to-Markdown
 
-This skill takes a Slack message or thread URL and exports the conversation (including replies) to a clean, readable Markdown file.
+This skill takes a Slack thread URL or channel URL and exports the conversation to a clean, readable Markdown file. Two modes:
+
+- **Thread mode**: Pass a thread URL (`archives/CHANNEL_ID/pTIMESTAMP`) to export a single thread with all replies
+- **Channel mode**: Pass a channel URL (`archives/CHANNEL_ID`) to export messages from the channel, optionally filtered by date range with `--since` and `--until`
 
 ## Prerequisites
 
@@ -75,30 +78,43 @@ oauth_config:
 ## Usage
 
 ### 1. Identify the Slack URL
-Copy the link to the message or thread you want to export. It should look like:
-`https://workspace.slack.com/archives/C12345678/p1700000000000000`
+Copy the link to the message/thread or channel you want to export:
+- Thread: `https://workspace.slack.com/archives/C12345678/p1700000000000000`
+- Channel: `https://workspace.slack.com/archives/C12345678`
 
 ### 2. Run the Export
 ```bash
-# Using environment variable (Standard)
-./run.sh [SLACK_URL]
+# Export a thread
+./run.sh "https://workspace.slack.com/archives/C12345678/p1700000000000000"
 
-# Providing token directly (Alternative)
-./run.sh [SLACK_URL] --token xoxp-your-token
+# Export today's channel messages
+./run.sh "https://workspace.slack.com/archives/C12345678" --since "2026-05-27"
+
+# Export channel messages in a date range
+./run.sh "https://workspace.slack.com/archives/C12345678" --since "2026-05-20" --until "2026-05-27"
+
+# Export channel messages since a specific time
+./run.sh "https://workspace.slack.com/archives/C12345678" --since "2026-05-27 09:00"
+
+# Providing token directly
+./run.sh "https://workspace.slack.com/archives/C12345678" --token xoxp-your-token
 ```
 
 Optional arguments:
 - `--output [filename]`: Specify a custom output filename.
 - `--output-dir [path]`: Specify a custom output directory. Default is `output/` next to the skill. Use this to land files directly in a vault path like `~/Source/my-vault/sources/slack/`.
+- `--since [DATE]`: Fetch messages after this date. Format: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`. Channel mode only.
+- `--until [DATE]`: Fetch messages before this date. Same format. Channel mode only.
+- `--limit [N]`: Max messages to fetch in channel mode (default: 200).
 
 ### 3. Retrieve the Markdown
 The file will be saved in the `output/` directory. Claude can then read this file to summarize it or perform further analysis.
 
 ## How it works
-1.  **URL Parsing**: Extracts the Channel ID and Message Timestamp (thread_ts) from the URL. Note: Slack URLs pad the timestamp and remove the dot (e.g., `p1700000000123456` -> `1700000000.123456`).
-2.  **API Fetching**: Uses `conversations.replies` to fetch the entire thread.
+1.  **URL Parsing**: Extracts the Channel ID and optional Thread Timestamp from the URL.
+2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering).
 3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear.
-4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown.
+4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages.
 
 ## Tips & Lessons Learned
 

@@ -17,25 +17,28 @@ load_dotenv(_skill_dir / ".env")
 
 def parse_slack_url(url):
     """
-    Parses a Slack URL to extract Channel ID and Thread Timestamp.
-    Example URL: https://workspace.slack.com/archives/C12345678/p1700000000000000
+    Parses a Slack URL to extract Channel ID and optional Thread Timestamp.
+
+    Supported formats:
+      - Thread:  https://workspace.slack.com/archives/C12345678/p1700000000000000
+      - Channel: https://workspace.slack.com/archives/C12345678
+    Returns (channel_id, thread_ts_or_None).
     """
-    # Regex to match archives/CHANNEL_ID/pTIMESTAMP
-    match = re.search(r'archives/([A-Z0-9]+)/p(\d+)', url)
-    if not match:
-        raise ValueError("Invalid Slack URL format. Expected archives/CHANNEL_ID/pTIMESTAMP")
+    thread_match = re.search(r'archives/([A-Z0-9]+)/p(\d+)', url)
+    if thread_match:
+        channel_id = thread_match.group(1)
+        timestamp_str = thread_match.group(2)
+        if len(timestamp_str) > 6:
+            ts = f"{timestamp_str[:-6]}.{timestamp_str[-6:]}"
+        else:
+            ts = timestamp_str
+        return channel_id, ts
 
-    channel_id = match.group(1)
-    timestamp_str = match.group(2)
+    channel_match = re.search(r'archives/([A-Z0-9]+)', url)
+    if channel_match:
+        return channel_match.group(1), None
 
-    # Slack timestamps in URLs are multiplied by 1,000,000 and have no dot
-    # p1706891234123456 -> 1706891234.123456
-    if len(timestamp_str) > 6:
-        ts = f"{timestamp_str[:-6]}.{timestamp_str[-6:]}"
-    else:
-        ts = timestamp_str # Fallback
-
-    return channel_id, ts
+    raise ValueError("Invalid Slack URL format. Expected archives/CHANNEL_ID or archives/CHANNEL_ID/pTIMESTAMP")
 
 def format_slack_text(text, user_map):
     """
@@ -99,12 +102,80 @@ def format_slack_text(text, user_map):
 
     return "\n".join(formatted_lines)
 
+def parse_date(value):
+    """Parse a date or datetime string into a Unix timestamp."""
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(value, fmt).timestamp()
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(
+        f"Cannot parse date '{value}'. Use YYYY-MM-DD or 'YYYY-MM-DD HH:MM'."
+    )
+
+
+def fetch_channel_messages(client, channel_id, oldest=None, latest=None, limit=200):
+    """Fetch channel messages with pagination, optionally bounded by time."""
+    all_messages = []
+    cursor = None
+    kwargs = {"channel": channel_id, "limit": min(limit, 200)}
+    if oldest is not None:
+        kwargs["oldest"] = str(oldest)
+    if latest is not None:
+        kwargs["latest"] = str(latest)
+
+    while True:
+        if cursor:
+            kwargs["cursor"] = cursor
+        result = client.conversations_history(**kwargs)
+        batch = result.get("messages", [])
+        all_messages.extend(batch)
+        if len(all_messages) >= limit:
+            all_messages = all_messages[:limit]
+            break
+        cursor = result.get("response_metadata", {}).get("next_cursor")
+        if not cursor:
+            break
+
+    all_messages.sort(key=lambda m: float(m.get("ts", 0)))
+    return all_messages
+
+
+def resolve_users(client, messages):
+    """Collect all user IDs from message authors and body @-mentions, then resolve to names."""
+    user_map = {}
+    user_ids = set()
+    mention_pattern = re.compile(r'<@([A-Z0-9]+)>')
+    for msg in messages:
+        if "user" in msg:
+            user_ids.add(msg["user"])
+        text = msg.get("text", "") or ""
+        user_ids.update(mention_pattern.findall(text))
+
+    print(f"[*] Resolving {len(user_ids)} users (authors + body @-mentions)...")
+    for uid in user_ids:
+        try:
+            user_info = client.users_info(user=uid)
+            profile = user_info["user"].get("profile", {})
+            name = profile.get("display_name") or user_info["user"].get("real_name") or uid
+            user_map[uid] = f"@{name}"
+        except SlackApiError:
+            user_map[uid] = f"@{uid}"
+    return user_map
+
+
 def main():
     parser = argparse.ArgumentParser(description="Export Slack conversation to Markdown")
-    parser.add_argument("url", help="Slack message or thread URL")
+    parser.add_argument("url", help="Slack thread URL or channel URL")
     parser.add_argument("--output", help="Optional output filename")
     parser.add_argument("--output-dir", help="Optional output directory (default: <skill>/output)")
     parser.add_argument("--token", help="Slack API token (xoxp- or xoxb-)")
+    parser.add_argument("--since", type=parse_date, metavar="DATE",
+                        help="Fetch messages after this date (YYYY-MM-DD or 'YYYY-MM-DD HH:MM')")
+    parser.add_argument("--until", type=parse_date, metavar="DATE",
+                        help="Fetch messages before this date (YYYY-MM-DD or 'YYYY-MM-DD HH:MM')")
+    parser.add_argument("--limit", type=int, default=200,
+                        help="Max messages to fetch in channel mode (default: 200)")
     args = parser.parse_args()
 
     token = args.token or os.environ.get("SLACK_BOT_TOKEN")
@@ -113,16 +184,29 @@ def main():
         sys.exit(1)
 
     client = WebClient(token=token)
-    user_map = {}
 
     try:
         channel_id, thread_ts = parse_slack_url(args.url)
-        print(f"[*] Parsing URL: Channel={channel_id}, TS={thread_ts}")
 
-        # Fetch conversation replies (this includes the parent message)
-        print(f"[*] Fetching conversation history...")
-        result = client.conversations_replies(channel=channel_id, ts=thread_ts)
-        messages = result.get("messages", [])
+        if thread_ts:
+            # Thread mode (existing behavior)
+            print(f"[*] Thread mode: Channel={channel_id}, TS={thread_ts}")
+            print(f"[*] Fetching conversation replies...")
+            result = client.conversations_replies(channel=channel_id, ts=thread_ts)
+            messages = result.get("messages", [])
+            mode = "thread"
+        else:
+            # Channel mode
+            since_label = datetime.fromtimestamp(args.since).strftime('%Y-%m-%d %H:%M') if args.since else "beginning"
+            until_label = datetime.fromtimestamp(args.until).strftime('%Y-%m-%d %H:%M') if args.until else "now"
+            print(f"[*] Channel mode: Channel={channel_id}, since={since_label}, until={until_label}")
+            print(f"[*] Fetching channel messages...")
+            messages = fetch_channel_messages(
+                client, channel_id,
+                oldest=args.since, latest=args.until,
+                limit=args.limit,
+            )
+            mode = "channel"
 
         if not messages:
             print("No messages found.")
@@ -136,61 +220,53 @@ def main():
         except SlackApiError:
             pass
 
-        # Collect user IDs to resolve names — both message authors AND
-        # any <@U_id> mentions inside message text. Without the body scan,
-        # @-mentions in the rendered output stay as raw IDs.
-        user_ids = set()
-        mention_pattern = re.compile(r'<@([A-Z0-9]+)>')
-        for msg in messages:
-            if "user" in msg:
-                user_ids.add(msg["user"])
-            text = msg.get("text", "") or ""
-            user_ids.update(mention_pattern.findall(text))
-
-        print(f"[*] Resolving {len(user_ids)} users (authors + body @-mentions)...")
-        for uid in user_ids:
-            try:
-                user_info = client.users_info(user=uid)
-                profile = user_info["user"].get("profile", {})
-                # display_name can be empty string for users who never set one;
-                # fall back to real_name. The previous "@" + dn or rn precedence
-                # silently produced "@" when dn was empty.
-                name = profile.get("display_name") or user_info["user"].get("real_name") or uid
-                user_map[uid] = f"@{name}"
-            except SlackApiError:
-                user_map[uid] = f"@{uid}"
+        user_map = resolve_users(client, messages)
 
         # Build Markdown
         md_content = []
-        md_content.append(f"# Slack Conversation Export")
+        if mode == "thread":
+            md_content.append(f"# Slack Conversation Export")
+        else:
+            md_content.append(f"# #{channel_name} — Channel Messages")
         md_content.append(f"- **Channel**: #{channel_name}")
+        if mode == "channel":
+            md_content.append(f"- **Range**: {since_label} to {until_label}")
+            md_content.append(f"- **Messages**: {len(messages)}")
         md_content.append(f"- **Exported At**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         md_content.append(f"- **Source**: [Slack Link]({args.url})")
         md_content.append("\n---\n")
 
         for i, msg in enumerate(messages):
+            # Skip channel_join/channel_leave subtypes in channel mode
+            subtype = msg.get("subtype")
+            if mode == "channel" and subtype in ("channel_join", "channel_leave"):
+                continue
+
             user = user_map.get(msg.get("user"), "Unknown User")
             ts = float(msg.get("ts", 0))
             dt = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
             text = msg.get("text", "")
             formatted_text = format_slack_text(text, user_map)
 
-            if i == 0:
+            if mode == "thread" and i == 0:
                 md_content.append(f"### {user} [{dt}]")
             else:
                 md_content.append(f"**{user}** [{dt}]")
 
             md_content.append(f"{formatted_text}\n")
 
-            # Sub-threads (rare in export_replies but good to note)
-            if "reply_count" in msg and i == 0:
-                md_content.append(f"\n*Thread contains {msg['reply_count']} replies:*\n")
+            if "reply_count" in msg:
+                md_content.append(f"*Thread: {msg['reply_count']} replies*\n")
 
         # Save output
         if args.output:
             filename = args.output
         else:
-            filename = f"slack_export_{channel_id}_{thread_ts.replace('.', '')}.md"
+            if mode == "thread":
+                filename = f"slack_export_{channel_id}_{thread_ts.replace('.', '')}.md"
+            else:
+                date_suffix = datetime.now().strftime('%Y-%m-%d')
+                filename = f"slack_{channel_name}_{date_suffix}.md"
 
         if args.output_dir:
             output_dir = Path(args.output_dir).expanduser().resolve()
