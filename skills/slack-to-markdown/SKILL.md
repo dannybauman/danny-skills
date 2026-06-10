@@ -1,14 +1,15 @@
 ---
 name: slack-to-markdown
-description: Extracts Slack conversations — threads or channel message ranges — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports channel URLs with --since/--until date filtering.
+description: Extracts Slack conversations — single threads, channel message ranges, or "from this message to now" — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.
 ---
 
 # Slack-to-Markdown
 
-This skill takes a Slack thread URL or channel URL and exports the conversation to a clean, readable Markdown file. Two modes:
+This skill takes a Slack thread URL or channel URL and exports the conversation to a clean, readable Markdown file. Modes:
 
 - **Thread mode**: Pass a thread URL (`archives/CHANNEL_ID/pTIMESTAMP`) to export a single thread with all replies
-- **Channel mode**: Pass a channel URL (`archives/CHANNEL_ID`) to export messages from the channel, optionally filtered by date range with `--since` and `--until`
+- **Channel mode**: Pass a channel URL (`archives/CHANNEL_ID`) to export messages from the channel, optionally filtered by date range with `--since` and `--until`. Add `--threads` to expand each message's thread replies inline (nested as blockquotes)
+- **From-here mode**: Pass a *message* URL (`archives/CHANNEL_ID/pTIMESTAMP`) with `--from-here` to export the whole channel from that message to the latest, threads expanded. This is the "catch me up from this message onward" mode
 
 ## Prerequisites
 
@@ -96,6 +97,12 @@ Copy the link to the message/thread or channel you want to export:
 # Export channel messages since a specific time
 ./run.sh "https://workspace.slack.com/archives/C12345678" --since "2026-05-27 09:00"
 
+# Export a channel range with every thread expanded inline
+./run.sh "https://workspace.slack.com/archives/C12345678" --since "2026-05-27" --threads
+
+# "Catch me up from this message to now" — channel from a linked message onward, threads expanded
+./run.sh "https://workspace.slack.com/archives/C12345678/p1700000000000000" --from-here
+
 # Providing token directly
 ./run.sh "https://workspace.slack.com/archives/C12345678" --token xoxp-your-token
 ```
@@ -106,13 +113,15 @@ Optional arguments:
 - `--since [DATE]`: Fetch messages after this date. Format: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`. Channel mode only.
 - `--until [DATE]`: Fetch messages before this date. Same format. Channel mode only.
 - `--limit [N]`: Max messages to fetch in channel mode (default: 200).
+- `--threads`: In channel mode, expand each message's thread replies inline (nested as blockquotes). Off by default to keep exports lean.
+- `--from-here`: Given a *message* URL (`.../pTIMESTAMP`), export the whole channel from that message to the latest instead of just that one thread. Implies `--threads` and includes the linked message itself.
 
 ### 3. Retrieve the Markdown
 The file will be saved in the `output/` directory. Claude can then read this file to summarize it or perform further analysis.
 
 ## How it works
 1.  **URL Parsing**: Extracts the Channel ID and optional Thread Timestamp from the URL.
-2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering).
+2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering). With `--threads`/`--from-here`, it also calls `conversations.replies` for each threaded message and nests the replies under their parent. `--from-here` sets the linked message's timestamp as an inclusive `oldest` bound so the linked message itself is included.
 3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear.
 4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages.
 

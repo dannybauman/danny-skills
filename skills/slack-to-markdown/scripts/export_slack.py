@@ -114,8 +114,10 @@ def parse_date(value):
     )
 
 
-def fetch_channel_messages(client, channel_id, oldest=None, latest=None, limit=200):
-    """Fetch channel messages with pagination, optionally bounded by time."""
+def fetch_channel_messages(client, channel_id, oldest=None, latest=None, limit=200, inclusive=False):
+    """Fetch channel messages with pagination, optionally bounded by time.
+    inclusive=True includes a message whose ts exactly equals `oldest`/`latest`
+    (Slack's history bounds are exclusive by default, which would drop the linked message)."""
     all_messages = []
     cursor = None
     kwargs = {"channel": channel_id, "limit": min(limit, 200)}
@@ -123,6 +125,8 @@ def fetch_channel_messages(client, channel_id, oldest=None, latest=None, limit=2
         kwargs["oldest"] = str(oldest)
     if latest is not None:
         kwargs["latest"] = str(latest)
+    if inclusive:
+        kwargs["inclusive"] = True
 
     while True:
         if cursor:
@@ -142,15 +146,21 @@ def fetch_channel_messages(client, channel_id, oldest=None, latest=None, limit=2
 
 
 def resolve_users(client, messages):
-    """Collect all user IDs from message authors and body @-mentions, then resolve to names."""
+    """Collect all user IDs from message authors and body @-mentions (including expanded
+    thread replies), then resolve to names."""
     user_map = {}
     user_ids = set()
     mention_pattern = re.compile(r'<@([A-Z0-9]+)>')
-    for msg in messages:
+
+    def collect(msg):
         if "user" in msg:
             user_ids.add(msg["user"])
-        text = msg.get("text", "") or ""
-        user_ids.update(mention_pattern.findall(text))
+        user_ids.update(mention_pattern.findall(msg.get("text", "") or ""))
+        for reply in msg.get("_replies", []) or []:
+            collect(reply)
+
+    for msg in messages:
+        collect(msg)
 
     print(f"[*] Resolving {len(user_ids)} users (authors + body @-mentions)...")
     for uid in user_ids:
@@ -176,6 +186,11 @@ def main():
                         help="Fetch messages before this date (YYYY-MM-DD or 'YYYY-MM-DD HH:MM')")
     parser.add_argument("--limit", type=int, default=200,
                         help="Max messages to fetch in channel mode (default: 200)")
+    parser.add_argument("--threads", action="store_true",
+                        help="In channel mode, expand each message's thread replies inline")
+    parser.add_argument("--from-here", action="store_true",
+                        help="Given a message URL (/pTIMESTAMP), export the whole channel from that "
+                             "message to latest (implies channel mode + --threads)")
     args = parser.parse_args()
 
     token = args.token or os.environ.get("SLACK_BOT_TOKEN")
@@ -188,13 +203,29 @@ def main():
     try:
         channel_id, thread_ts = parse_slack_url(args.url)
 
-        if thread_ts:
+        # --from-here turns a message URL into "channel from this message to latest",
+        # expanding every thread along the way. Useful for "catch me up from here onward".
+        expand_threads = args.threads
+        if thread_ts and args.from_here:
+            oldest = float(thread_ts)
+            since_label = datetime.fromtimestamp(oldest).strftime('%Y-%m-%d %H:%M')
+            until_label = datetime.fromtimestamp(args.until).strftime('%Y-%m-%d %H:%M') if args.until else "now"
+            print(f"[*] Channel-from-here mode: Channel={channel_id}, from {since_label} (the linked message) to {until_label}")
+            print(f"[*] Fetching channel messages...")
+            messages = fetch_channel_messages(
+                client, channel_id, oldest=oldest, latest=args.until,
+                limit=args.limit, inclusive=True,
+            )
+            mode = "channel"
+            expand_threads = True
+        elif thread_ts:
             # Thread mode (existing behavior)
             print(f"[*] Thread mode: Channel={channel_id}, TS={thread_ts}")
             print(f"[*] Fetching conversation replies...")
             result = client.conversations_replies(channel=channel_id, ts=thread_ts)
             messages = result.get("messages", [])
             mode = "thread"
+            since_label = until_label = None
         else:
             # Channel mode
             since_label = datetime.fromtimestamp(args.since).strftime('%Y-%m-%d %H:%M') if args.since else "beginning"
@@ -207,6 +238,19 @@ def main():
                 limit=args.limit,
             )
             mode = "channel"
+
+        # Expand thread replies in channel mode when requested (--threads or --from-here)
+        if mode == "channel" and expand_threads and messages:
+            n_threads = sum(1 for m in messages if m.get("reply_count") and m.get("thread_ts") == m.get("ts"))
+            if n_threads:
+                print(f"[*] Expanding {n_threads} thread(s)...")
+            for m in messages:
+                if m.get("reply_count") and m.get("thread_ts") == m.get("ts"):
+                    try:
+                        rr = client.conversations_replies(channel=channel_id, ts=m["ts"])
+                        m["_replies"] = rr.get("messages", [])[1:]  # skip the parent (already included)
+                    except SlackApiError:
+                        m["_replies"] = []
 
         if not messages:
             print("No messages found.")
@@ -255,7 +299,14 @@ def main():
 
             md_content.append(f"{formatted_text}\n")
 
-            if "reply_count" in msg:
+            if expand_threads and msg.get("_replies"):
+                for reply in msg["_replies"]:
+                    r_user = user_map.get(reply.get("user"), "Unknown User")
+                    r_dt = datetime.fromtimestamp(float(reply.get("ts", 0))).strftime('%Y-%m-%d %H:%M:%S')
+                    r_text = format_slack_text(reply.get("text", ""), user_map)
+                    md_content.append(f"> **{r_user}** [{r_dt}]")
+                    md_content.append("> " + r_text.replace("\n", "\n> ") + "\n")
+            elif "reply_count" in msg:
                 md_content.append(f"*Thread: {msg['reply_count']} replies*\n")
 
         # Save output
