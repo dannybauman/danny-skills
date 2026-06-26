@@ -1,0 +1,9 @@
+{
+  "name": "ai-impact-audit",
+  "description": "Run a skeptical, evidence-grounded audit of the real value the AI assistance has given you, separating genuine impact from output volume, scaffolding, and the AI cleaning up after itself. Use when someone asks what working with AI has actually done for them, wants an honest assessment of an AI-assisted workflow, or wants to judge whether an AI setup is worth it.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}

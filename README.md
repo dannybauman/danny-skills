@@ -19,6 +19,7 @@ Update everything:
 
 | Skill | What it does |
 |:------|:------------|
+| ai-impact-audit | Skeptically audit the real value AI assistance has given you, separating impact from volume, scaffolding, and self-cleanup |
 | airtable | Talk to Airtable bases — list, search, create, update records and manage attachments |
 | branch-compare | Compare git branches visually side by side with a hot-swappable browser preview |
 | design-variants | Redesign a UI multiple ways at once using different AI tools, then compare them |
