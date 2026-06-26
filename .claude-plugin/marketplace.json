@@ -83,6 +83,13 @@
       "description": "Build a Google Apps Script web app that reads data from Google Drive and serves HTML, restricted to a Google Workspace domain. Use when a team wants a click-to-view URL for confidential data without GitHub Pages or download-and-open friction.",
       "version": "0.1.0",
       "license": "MIT"
+    },
+    {
+      "name": "ai-impact-audit",
+      "source": "./skills/ai-impact-audit",
+      "description": "Run a skeptical, evidence-grounded audit of the real value the AI assistance has given you, separating genuine impact from output volume, scaffolding, and the AI cleaning up after itself. Use when someone asks what working with AI has actually done for them, wants an honest assessment of an AI-assisted workflow, or wants to judge whether an AI setup is worth it.",
+      "version": "0.1.0",
+      "license": "MIT"
     }
   ]
 }
