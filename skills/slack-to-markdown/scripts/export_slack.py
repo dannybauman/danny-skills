@@ -208,7 +208,17 @@ def resolve_users(client, messages):
         try:
             user_info = client.users_info(user=uid)
             profile = user_info["user"].get("profile", {})
-            name = profile.get("display_name") or user_info["user"].get("real_name") or uid
+            # Prefer the REAL name over the display-name handle. A terse handle (e.g. initials
+            # or a nickname) doesn't say who the person is, which leads to mis-attribution when
+            # a reader or an LLM guesses from it. real_name is the reliable map from a Slack
+            # user to the actual person. Keep the handle in parens only when it differs from the
+            # real name, so mentions stay traceable back to Slack.
+            real = profile.get("real_name") or user_info["user"].get("real_name")
+            display = profile.get("display_name")
+            if real and display and display.lower() != real.lower():
+                name = f"{real} ({display})"
+            else:
+                name = real or display or uid
             user_map[uid] = f"@{name}"
         except SlackApiError:
             user_map[uid] = f"@{uid}"
