@@ -29,6 +29,7 @@ Update everything:
 | project-video | Generate short highlight reel videos for software projects |
 | satellite-image | Pull recent Sentinel-2 imagery from Microsoft Planetary Computer |
 | slack-to-markdown | Grab a Slack thread from a URL and save it as clean Markdown |
+| integrating-local-models | Wire a local LLM or audio model into an app or agent, with capability probes that catch the tool-calling trap |
 | stac-scaffolder | Scaffold a STAC (SpatioTemporal Asset Catalog) project with pystac |
 | veda-story-creator | Generate VEDA scrollytelling story MDX files with satellite data visualizations |
 

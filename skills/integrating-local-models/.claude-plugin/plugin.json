@@ -1,0 +1,8 @@
+{
+  "name": "integrating-local-models",
+  "description": "Integrate a local LLM (Ollama / LM Studio) or local audio model (Whisper STT / Kokoro / Piper TTS) into an app or agent, with a three-rung capability probe. Use when wiring a local model into an app or agent runner, choosing between Ollama and LM Studio, debugging local tool-calling failures, or picking a local STT/TTS model.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}
