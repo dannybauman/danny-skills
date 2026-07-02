@@ -102,6 +102,47 @@ def format_slack_text(text, user_map):
 
     return "\n".join(formatted_lines)
 
+def format_message_extras(msg, user_map):
+    """Render content that lives OUTSIDE a message's `text` field, so messages carrying
+    only that content don't export blank. Two common cases both leave `text` empty:
+      - a shared message (someone pastes a Slack permalink, Slack attaches the referenced
+        message as an `is_share` attachment with `from_url` + `text` + author)
+      - a file/image post (content is in `files`, not `text`)
+    Returns markdown (possibly empty)."""
+    parts = []
+    for att in msg.get("attachments") or []:
+        from_url = att.get("from_url")
+        att_text = att.get("text", "") or ""
+        if att.get("is_share") or (from_url and att_text):
+            header = "↪ Shared message"
+            author = att.get("author_subname") or att.get("author_name")
+            if author:
+                header += f" from @{author}"
+            if att.get("channel_name"):
+                header += f" in #{att['channel_name']}"
+            if from_url:
+                header += f": {from_url}"
+            parts.append(header)
+            if att_text:
+                parts.append("> " + format_slack_text(att_text, user_map).replace("\n", "\n> "))
+        else:
+            # Generic link unfurl (title + link, or a bare fallback)
+            title = att.get("title")
+            link = att.get("title_link") or att.get("original_url") or from_url
+            if title and link:
+                parts.append(f"↪ [{title}]({link})")
+            elif link:
+                parts.append(f"↪ {link}")
+            elif att_text:
+                parts.append("> " + format_slack_text(att_text, user_map).replace("\n", "\n> "))
+    for f in msg.get("files") or []:
+        name = f.get("name") or f.get("title") or "file"
+        ftype = f.get("filetype")
+        link = f.get("permalink") or f.get("url_private")
+        label = f"📎 {name}" + (f" ({ftype})" if ftype else "")
+        parts.append(f"{label}: {link}" if link else label)
+    return "\n\n".join(parts)
+
 def parse_date(value):
     """Parse a date or datetime string into a Unix timestamp."""
     for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
@@ -167,7 +208,17 @@ def resolve_users(client, messages):
         try:
             user_info = client.users_info(user=uid)
             profile = user_info["user"].get("profile", {})
-            name = profile.get("display_name") or user_info["user"].get("real_name") or uid
+            # Prefer the REAL name over the display-name handle. A terse handle (e.g. initials
+            # or a nickname) doesn't say who the person is, which leads to mis-attribution when
+            # a reader or an LLM guesses from it. real_name is the reliable map from a Slack
+            # user to the actual person. Keep the handle in parens only when it differs from the
+            # real name, so mentions stay traceable back to Slack.
+            real = profile.get("real_name") or user_info["user"].get("real_name")
+            display = profile.get("display_name")
+            if real and display and display.lower() != real.lower():
+                name = f"{real} ({display})"
+            else:
+                name = real or display or uid
             user_map[uid] = f"@{name}"
         except SlackApiError:
             user_map[uid] = f"@{uid}"
@@ -291,21 +342,25 @@ def main():
             dt = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
             text = msg.get("text", "")
             formatted_text = format_slack_text(text, user_map)
+            extras = format_message_extras(msg, user_map)
+            body = "\n\n".join(p for p in (formatted_text, extras) if p)
 
             if mode == "thread" and i == 0:
                 md_content.append(f"### {user} [{dt}]")
             else:
                 md_content.append(f"**{user}** [{dt}]")
 
-            md_content.append(f"{formatted_text}\n")
+            md_content.append(f"{body}\n")
 
             if expand_threads and msg.get("_replies"):
                 for reply in msg["_replies"]:
                     r_user = user_map.get(reply.get("user"), "Unknown User")
                     r_dt = datetime.fromtimestamp(float(reply.get("ts", 0))).strftime('%Y-%m-%d %H:%M:%S')
                     r_text = format_slack_text(reply.get("text", ""), user_map)
+                    r_extras = format_message_extras(reply, user_map)
+                    r_body = "\n\n".join(p for p in (r_text, r_extras) if p)
                     md_content.append(f"> **{r_user}** [{r_dt}]")
-                    md_content.append("> " + r_text.replace("\n", "\n> ") + "\n")
+                    md_content.append("> " + r_body.replace("\n", "\n> ") + "\n")
             elif "reply_count" in msg:
                 md_content.append(f"*Thread: {msg['reply_count']} replies*\n")
 
