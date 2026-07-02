@@ -124,6 +124,7 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering). With `--threads`/`--from-here`, it also calls `conversations.replies` for each threaded message and nests the replies under their parent. `--from-here` sets the linked message's timestamp as an inclusive `oldest` bound so the linked message itself is included.
 3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear.
 4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages.
+5.  **Non-text content**: Messages whose `text` is empty because they only carry a shared message (a pasted Slack permalink) or a file/image no longer export blank. The shared message's link, author, and quoted body are surfaced inline (prefixed `↪`), and file posts list their name and link (prefixed `📎`). Applies to both top-level messages and expanded thread replies.
 
 ## Tips & Lessons Learned
 
