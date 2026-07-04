@@ -104,6 +104,13 @@
       "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault — no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
       "version": "1.0.0",
       "license": "MIT"
+    },
+    {
+      "name": "port-to-open-standard",
+      "source": "./skills/port-to-open-standard",
+      "description": "Convert proprietary IDE commands (like Claude Code custom slash commands) into cross-platform skills, commands, or MCP servers that work across Antigravity, Claude Code, and Cursor. Scaffold new standard workflows.",
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }

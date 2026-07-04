@@ -21,8 +21,10 @@ Update everything:
 |:------|:------------|
 | ai-impact-audit | Skeptically audit the real value AI assistance has given you, separating impact from volume, scaffolding, and self-cleanup |
 | airtable | Talk to Airtable bases — list, search, create, update records and manage attachments |
+| apps-script-drive-viewer | Build a domain-restricted Google Apps Script web app that serves confidential Drive data as a click-to-view URL |
 | branch-compare | Compare git branches visually side by side with a hot-swappable browser preview |
 | design-variants | Redesign a UI multiple ways at once using different AI tools, then compare them |
+| devseed-tarot | Draw a tarot reading for any repo from its commit history — 22 animated chart-fragment cards, a turn-them-yourself local frontend |
 | devseed-writing | Write and format blog posts and project pages for the Dev Seed website |
 | map-to-poster | Turn cities into minimalist map posters from OpenStreetMap data |
 | port-to-open-standard | Scaffold cross-platform agent skills, commands, and MCP servers to escape vendor lock-in |
