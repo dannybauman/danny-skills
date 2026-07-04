@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .hearth { transform-box: fill-box; transform-origin: center; animation: glow 5s ease-in-out infinite; }
+      @keyframes glow { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.12); opacity: 1; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <circle cx="58" cy="64" r="7" stroke="#9a9490" stroke-width="2.5"/>
+  <circle cx="58" cy="64" r="2.5" fill="#9a9490"/>
+  <circle cx="104" cy="64" r="7" stroke="#9a9490" stroke-width="2.5"/>
+  <circle cx="104" cy="64" r="2.5" fill="#9a9490"/>
+  <circle cx="80" cy="108" r="7" stroke="#9a9490" stroke-width="2.5"/>
+  <circle cx="80" cy="108" r="2.5" fill="#9a9490"/>
+  <path d="M 66 66 L 96 66" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <path d="M 62 71 L 75 101" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <path d="M 100 71 L 85 101" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <g class="hearth">
+    <circle cx="80" cy="78" r="4.5" fill="#CF3F02"/>
+    <line x1="85" y1="73" x2="89" y2="69" stroke="#CF3F02" stroke-width="1.5"/>
+    <line x1="75" y1="73" x2="71" y2="69" stroke="#CF3F02" stroke-width="1.5"/>
+    <line x1="85" y1="83" x2="89" y2="87" stroke="#CF3F02" stroke-width="1.5"/>
+    <line x1="75" y1="83" x2="71" y2="87" stroke="#CF3F02" stroke-width="1.5"/>
+  </g>
+</svg>

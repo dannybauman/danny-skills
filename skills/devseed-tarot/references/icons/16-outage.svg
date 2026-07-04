@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .storm { transform-box: view-box; transform-origin: 86px 64px; animation: spin 18s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path class="storm" d="M 110 64 A 24 24 0 1 1 62 64 A 18 18 0 1 1 98 64 A 12 12 0 1 1 74 64 A 7 7 0 1 1 88 64" stroke="#CF3F02" stroke-width="3"/>
+  <path d="M 24 128 Q 44 112 56 102" stroke="#9a9490" stroke-width="2" stroke-dasharray="6 5"/>
+  <line x1="62" y1="96" x2="67" y2="91" stroke="#9a9490" stroke-width="2"/>
+  <line x1="70" y1="102" x2="76" y2="99" stroke="#9a9490" stroke-width="2"/>
+  <circle cx="30" cy="124" r="6" stroke="#9a9490" stroke-width="2.5"/>
+  <circle cx="30" cy="124" r="2" fill="#9a9490"/>
+  <circle cx="114" cy="114" r="6" stroke="#9a9490" stroke-width="2.5"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .flow { animation: flow 11s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -84; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 40 120 Q 24 96 50 90 Q 78 84 64 66 Q 54 50 86 56 Q 108 60 116 48" stroke="#9a9490" stroke-width="2" opacity="0.45"/>
+  <path class="flow" d="M 40 118 Q 78 90 120 48" stroke="#CF3F02" stroke-width="2.5" stroke-dasharray="9 5"/>
+  <circle cx="36" cy="124" r="6" stroke="#CF3F02" stroke-width="2.5"/>
+  <circle cx="36" cy="124" r="2" fill="#CF3F02"/>
+  <circle cx="124" cy="44" r="6" stroke="#CF3F02" stroke-width="2.5"/>
+  <circle cx="124" cy="44" r="2" fill="#CF3F02"/>
+</svg>

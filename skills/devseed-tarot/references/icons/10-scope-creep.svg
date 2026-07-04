@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .crawl { animation: crawl 30s linear infinite; }
+      .crawl2 { animation: crawl 22s linear infinite reverse; }
+      @keyframes crawl { to { stroke-dashoffset: -80; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 62 78 Q 66 66 80 68 Q 92 70 90 82 Q 88 94 72 92 Q 60 90 62 78 Z" stroke="#CF3F02" stroke-width="2.5"/>
+  <path class="crawl" d="M 48 76 Q 52 56 78 58 Q 104 60 102 82 Q 100 102 70 100 Q 46 98 48 76 Z" stroke="#9a9490" stroke-width="2" stroke-dasharray="5 5" opacity="0.6"/>
+  <path class="crawl2" d="M 34 72 Q 38 42 82 46 Q 122 50 120 86 Q 118 116 66 112 Q 30 108 34 72 Z" stroke="#9a9490" stroke-width="2" stroke-dasharray="3 7" opacity="0.4"/>
+</svg>

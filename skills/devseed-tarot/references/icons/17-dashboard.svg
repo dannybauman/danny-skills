@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .lit { transform-box: fill-box; transform-origin: center; animation: twinkle 5s ease-in-out infinite; }
+      .l2 { animation-delay: 1.6s; } .l3 { animation-delay: 3.2s; }
+      @keyframes twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.82); opacity: 0.65; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 132 75.5 L 136.5 80 L 132 84.5 L 127.5 80 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 125 49.5 L 129.5 54 L 125 58.5 L 120.5 54 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 80 23.5 L 84.5 28 L 80 32.5 L 75.5 28 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 54 30.5 L 58.5 35 L 54 39.5 L 49.5 35 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 35 49.5 L 39.5 54 L 35 58.5 L 30.5 54 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 35 101.5 L 39.5 106 L 35 110.5 L 30.5 106 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 54 120.5 L 58.5 125 L 54 129.5 L 49.5 125 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 80 127.5 L 84.5 132 L 80 136.5 L 75.5 132 Z" fill="#9a9490" opacity="0.6"/>
+  <path d="M 125 101.5 L 129.5 106 L 125 110.5 L 120.5 106 Z" fill="#9a9490" opacity="0.6"/>
+  <path class="lit" d="M 106 28.5 L 112.5 35 L 106 41.5 L 99.5 35 Z" fill="#CF3F02"/>
+  <path class="lit l2" d="M 21.5 80 L 28 73.5 L 34.5 80 L 28 86.5 Z" fill="#CF3F02"/>
+  <path class="lit l3" d="M 106 118.5 L 112.5 125 L 106 131.5 L 99.5 125 Z" fill="#CF3F02"/>
+  <line x1="103" y1="38" x2="82" y2="77" stroke="#CF3F02" stroke-width="1.5"/>
+  <line x1="31" y1="80" x2="76" y2="80" stroke="#CF3F02" stroke-width="1.5"/>
+  <line x1="103" y1="122" x2="82" y2="83" stroke="#CF3F02" stroke-width="1.5"/>
+  <circle cx="80" cy="80" r="3.5" fill="#CF3F02"/>
+</svg>

@@ -97,6 +97,13 @@
       "description": "Integrate a local LLM (Ollama / LM Studio) or local audio model (Whisper STT / Kokoro / Piper TTS) into an app or agent, with a three-rung capability probe. Use when wiring a local model into an app or agent runner, choosing between Ollama and LM Studio, debugging local tool-calling failures, or picking a local STT/TTS model.",
       "version": "1.0.0",
       "license": "MIT"
+    },
+    {
+      "name": "devseed-tarot",
+      "source": "./skills/devseed-tarot",
+      "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault — no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
+      "version": "1.0.0",
+      "license": "MIT"
     }
   ]
 }

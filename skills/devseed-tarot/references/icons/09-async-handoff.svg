@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .star { transform-box: fill-box; transform-origin: center; animation: twinkle 5s ease-in-out infinite; }
+      @keyframes twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.85); opacity: 0.6; } }
+      .flow { animation: flow 11s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -80; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path class="star" d="M 80 20 L 83.5 28.5 L 92 32 L 83.5 35.5 L 80 44 L 76.5 35.5 L 68 32 L 76.5 28.5 Z" fill="#CF3F02"/>
+  <path d="M 26 118 Q 30 106 44 108 Q 56 110 52 122 Q 48 130 34 128 Q 24 126 26 118 Z" fill="#9a9490" opacity="0.5"/>
+  <path d="M 108 96 Q 112 86 126 88 Q 138 90 134 102 Q 130 110 116 108 Q 106 106 108 96 Z" fill="#9a9490" opacity="0.5"/>
+  <path class="flow" d="M 42 108 Q 58 72 76 40" stroke="#CF3F02" stroke-width="1.5" stroke-dasharray="2 6"/>
+  <path class="flow" d="M 120 92 Q 104 64 84 40" stroke="#CF3F02" stroke-width="1.5" stroke-dasharray="2 6"/>
+  <path d="M 56 124 Q 80 114 104 122" stroke="#9a9490" stroke-width="1.5" opacity="0.5"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .eddy { transform-box: view-box; transform-origin: 84px 84px; animation: spin 25s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 28 110 Q 54 98 68 90" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 7"/>
+  <path d="M 104 68 Q 120 62 132 56" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 7"/>
+  <path class="eddy" d="M 102 84 A 18 18 0 1 1 66 84 A 13 13 0 1 1 92 84 A 8 8 0 1 1 76 84" stroke="#CF3F02" stroke-width="2.5"/>
+  <path d="M 68 90 Q 76 110 96 104 Q 108 100 104 68" stroke="#9a9490" stroke-width="2" stroke-dasharray="5 5" opacity="0.7"/>
+</svg>

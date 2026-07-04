@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 6s ease-in-out infinite; }
+      .p2 { animation-delay: 2s; }
+      .p3 { animation-delay: 4s; }
+      @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.25); opacity: 1; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 26 56 Q 80 44 134 56" stroke="#9a9490" stroke-width="2.5"/>
+  <line x1="40" y1="53" x2="40" y2="98" stroke="#9a9490" stroke-width="2"/>
+  <line x1="60" y1="49" x2="60" y2="112" stroke="#9a9490" stroke-width="2"/>
+  <line x1="80" y1="47" x2="80" y2="120" stroke="#CF3F02" stroke-width="2.5"/>
+  <line x1="100" y1="49" x2="100" y2="104" stroke="#9a9490" stroke-width="2"/>
+  <line x1="120" y1="53" x2="120" y2="92" stroke="#9a9490" stroke-width="2"/>
+  <circle cx="40" cy="70" r="3" fill="#9a9490"/>
+  <circle cx="40" cy="86" r="3" fill="#9a9490"/>
+  <circle cx="60" cy="64" r="3" fill="#9a9490"/>
+  <circle cx="60" cy="92" r="3" fill="#9a9490"/>
+  <circle class="pulse" cx="80" cy="62" r="3.5" fill="#CF3F02"/>
+  <circle class="pulse p2" cx="80" cy="84" r="3.5" fill="#CF3F02"/>
+  <circle class="pulse p3" cx="80" cy="106" r="3.5" fill="#CF3F02"/>
+  <circle cx="100" cy="72" r="3" fill="#9a9490"/>
+  <circle cx="120" cy="68" r="3" fill="#9a9490"/>
+  <circle cx="120" cy="80" r="3" fill="#9a9490"/>
+</svg>

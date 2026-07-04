@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .flow { animation: flow 12s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -81; } }
+    }
+  </style>
+  <defs>
+    <linearGradient id="fade00" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#CF3F02"/>
+      <stop offset="1" stop-color="#CF3F02" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <circle cx="38" cy="118" r="7" stroke="#CF3F02" stroke-width="2.5"/>
+  <circle cx="38" cy="118" r="2.5" fill="#CF3F02"/>
+  <path class="flow" d="M 48 110 Q 72 96 96 78 Q 116 64 130 46" stroke="url(#fade00)" stroke-width="2.5" stroke-dasharray="1 8"/>
+  <path d="M 108 44 Q 112 36 122 38 Q 130 40 128 48 Q 126 56 114 52 Q 106 50 108 44 Z" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.5"/>
+  <circle cx="88" cy="26" r="6" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.5"/>
+</svg>

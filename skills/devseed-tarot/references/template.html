@@ -1,0 +1,583 @@
+<!--
+  devseed-tarot reading template.
+  Complete standalone HTML file (served directly by a local static server,
+  no wrapper). Copy it, replace every {{TOKEN}}, write the result out, then
+  serve that new file alongside a copy of references/icons/ — never edit
+  this one in place. See SKILL.md for the fill-in steps.
+
+  {{SUBJECT}}           - the topic/question given, or the repo/project name
+  {{GROUNDING_LINE}}    - one line: what grounded this reading
+  {{DATE}}              - human date, e.g. "3 Jul 2026"
+  {{NUM1..4}}           - roman numerals, e.g. "X"
+  {{NAME1..4}}          - card names, e.g. "THE SCOPE CREEP"
+  {{KEYWORD1..4}}       - the card's one-line keyword
+  {{ICON1..4}}          - icon filename, e.g. "10-scope-creep.svg"
+  {{DEVSEED_TEXT1..4}}  - generic dev-culture interpretation, 2-3 sentences
+  {{PROJECT_TEXT1..4}}  - same card, grounded in this repo's real signal
+
+  The experience: welcome screen → Begin → four cards arrive face-down →
+  the reader turns each one (3D flip), gently paced with short prompts →
+  lens toggle appears once the chart is fully drawn. All motion is CSS,
+  guarded by prefers-reduced-motion. Icons are external <img> SVGs (see
+  icons/README.md) and animate themselves via embedded CSS.
+
+  Design system: every visual value is a token in :root. Mobile-first —
+  base rules target a phone, min-width queries only add breathing room.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevSeed Tarot &middot; {{SUBJECT}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,600;1,400&family=Roboto+Mono:wght@400;500&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ---------- design tokens ---------- */
+  :root {
+    /* color */
+    --accent:  #CF3F02;
+    --ink:     #443F3F;
+    --mid:     #4a4440;
+    --muted:   #9a9490;
+    --rule:    #dedad4;
+    --bg:      #f7f4ef;
+    --card-bg: #ffffff;
+
+    /* type */
+    --font-display: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+    --font-body:    'Roboto', -apple-system, Helvetica, Arial, sans-serif;
+    --font-mono:    'Roboto Mono', Menlo, monospace;
+    --text-xs:   clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+    --text-sm:   clamp(0.8125rem, 0.78rem + 0.2vw, 0.875rem);
+    --text-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1.03125rem);
+    --text-md:   clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+    --text-lg:   clamp(1.25rem, 1.15rem + 0.5vw, 1.4375rem);
+    --text-xl:   clamp(1.75rem, 1.5rem + 1.6vw, 2.25rem);
+
+    /* space */
+    --space-3xs: 0.25rem;
+    --space-2xs: 0.5rem;
+    --space-xs:  0.75rem;
+    --space-sm:  1rem;
+    --space-md:  1.5rem;
+    --space-lg:  2rem;
+    --space-xl:  3rem;
+    --space-2xl: 4rem;
+
+    /* shape */
+    --radius-sm:   8px;
+    --radius-md:   14px;
+    --radius-full: 999px;
+    --content-max: 42rem;
+
+    /* motion */
+    --ease-settle:   cubic-bezier(.16,.84,.44,1);
+    --duration-fast: 220ms;
+    --duration-base: 700ms;
+    --duration-flip: 950ms;
+    --duration-ambient: 60s;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #f2ede6; --mid: #cabfb5; --muted: #85796f;
+      --rule: #332c27; --bg: #15110e; --card-bg: #1e1915;
+    }
+  }
+
+  /* ---------- reset ---------- */
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ---------- ambient background: slow drift over a faint graticule ---------- */
+  body::before {
+    content: ""; position: fixed; inset: -10vh -10vw; z-index: -1;
+    background:
+      radial-gradient(38rem 28rem at 18% 12%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 60%),
+      radial-gradient(34rem 30rem at 85% 78%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 65%);
+    animation: drift var(--duration-ambient) ease-in-out infinite alternate;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--muted) 14%, transparent) 0 1px, transparent 1px 72px),
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 14%, transparent) 0 1px, transparent 1px 72px);
+    opacity: 0.35;
+  }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(-2.5%, 2%) scale(1.05); }
+  }
+
+  /* ---------- welcome screen ---------- */
+  .welcome {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: var(--space-lg);
+    background: var(--bg);
+    transition: opacity var(--duration-base) var(--ease-settle), visibility var(--duration-base);
+  }
+  .welcome.gone { opacity: 0; visibility: hidden; }
+  .welcome .eyebrow { margin-bottom: var(--space-sm); }
+  .welcome h1 { margin-bottom: var(--space-xs); }
+  .welcome .meta { margin-bottom: var(--space-lg); }
+  .welcome .invite {
+    font-size: var(--text-md); color: var(--mid); margin-bottom: var(--space-lg);
+  }
+  .begin {
+    font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: .1em;
+    text-transform: uppercase; color: #fff; background: var(--accent);
+    border: none; border-radius: var(--radius-full); padding: 0.85rem 2.2rem;
+    cursor: pointer; transition: transform var(--duration-fast) var(--ease-settle);
+  }
+  .begin { transition: transform var(--duration-fast) var(--ease-settle), box-shadow var(--duration-fast) var(--ease-settle); }
+  .welcome .compass { width: 5rem; height: 5rem; margin-bottom: var(--space-md); }
+
+  /* ---------- layout (mobile-first base) ---------- */
+  .wrap {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: var(--space-xl) var(--space-sm) var(--space-2xl);
+  }
+  header { text-align: center; margin-bottom: var(--space-md); }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: var(--text-xs);
+    letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  }
+  h1 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: var(--text-xl); line-height: 1.2; margin: var(--space-sm) 0 var(--space-xs);
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .meta {
+    font-family: var(--font-mono); font-size: var(--text-sm);
+    color: var(--muted);
+  }
+
+  /* ---------- guide line ---------- */
+  .guide {
+    text-align: center; min-height: 1.6em;
+    font-style: italic; color: var(--muted); font-size: var(--text-md);
+    margin-bottom: var(--space-md);
+    transition: opacity 500ms var(--ease-settle);
+  }
+  .guide.swap { opacity: 0; }
+
+  /* ---------- lens toggle (appears at the end) ---------- */
+  .lens-row { text-align: center; margin-bottom: var(--space-md); }
+  .lens-toggle {
+    display: inline-flex; gap: var(--space-3xs);
+    border: 1px solid var(--rule); border-radius: var(--radius-full);
+    padding: 4px;
+    opacity: 0; visibility: hidden; transform: translateY(6px);
+    transition: opacity var(--duration-base) var(--ease-settle), transform var(--duration-base) var(--ease-settle), visibility var(--duration-base);
+  }
+  .wrap.done .lens-toggle { opacity: 1; visibility: visible; transform: none; }
+  .lens-btn {
+    font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: .04em;
+    background: none; border: none; border-radius: var(--radius-full);
+    padding: 0.5rem 0.9rem; color: var(--muted); cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-settle), color var(--duration-fast) var(--ease-settle);
+  }
+  .lens-btn.active { background: var(--accent); color: #fff; }
+
+  /* ---------- the spread: face-down cards that flip ---------- */
+  .spread { display: flex; flex-direction: column; gap: var(--space-md); }
+  .spread.hold .flip-scene:not(.flipped) { pointer-events: none; }
+  .flip-scene { perspective: 1400px; }
+  .flip-inner {
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform var(--duration-flip) var(--ease-settle);
+  }
+  .flipped .flip-inner { transform: rotateY(180deg); }
+
+  .card-back, .card-front {
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    border: 1px solid var(--rule); border-radius: var(--radius-md);
+    background: var(--card-bg);
+  }
+  .card-back {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: var(--space-xs); cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-settle);
+  }
+  .flip-scene:not(.flipped) .card-back:hover { border-color: var(--accent); }
+  .card-back .back-art { width: 4rem; height: 4rem; opacity: 0.8; }
+  .card-back .position { margin: 0; border: none; padding: 0; }
+  .card-back .hint {
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--accent);
+    opacity: 0.75;
+  }
+  .card-front {
+    position: relative; transform: rotateY(180deg);
+    padding: 0; overflow: hidden;
+  }
+  /* art is a full-width square anchored top — the whole scene stays visible,
+     the scrim only touches its sparse bottom edge */
+  .card-art { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 1; }
+  .card-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card-scrim {
+    position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 1;
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--card-bg) 85%, transparent) 0%,
+      transparent 20%,
+      transparent 58%,
+      color-mix(in srgb, var(--card-bg) 90%, transparent) 84%,
+      var(--card-bg) 97%);
+  }
+  .card-content { position: relative; padding: var(--space-md); }
+  .card-title h2 { margin: 0; }
+  .card-body { margin-top: 54%; }
+
+  /* front content settles in after the flip */
+  .card-front .settle {
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 600ms var(--ease-settle), transform 600ms var(--ease-settle);
+  }
+  .flipped .card-front .settle { opacity: 1; transform: none; }
+  .flipped .card-front .s1 { transition-delay: 450ms; }
+  .flipped .card-front .s2 { transition-delay: 650ms; }
+  .flipped .card-front .s3 { transition-delay: 850ms; }
+
+  .numeral {
+    font-family: var(--font-display); font-size: var(--text-sm); color: var(--accent);
+    display: block; margin-bottom: 2px;
+  }
+  .card-front h2 {
+    font-family: var(--font-display); font-weight: 400;
+    font-size: var(--text-lg); margin: 0; line-height: 1.15;
+  }
+  .position {
+    font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: .13em;
+    text-transform: uppercase; color: var(--muted); margin: var(--space-sm) 0 var(--space-3xs);
+    border-top: 1px dashed var(--rule); padding-top: var(--space-xs);
+  }
+  .keyword { font-style: italic; color: var(--mid); font-size: var(--text-md); margin-bottom: var(--space-xs); }
+  .card-front p.lens { font-size: var(--text-base); line-height: 1.6; color: var(--mid); margin: 0; }
+  .wrap[data-lens="devseed"] .lens-project { display: none; }
+  .wrap[data-lens="project"] .lens-devseed { display: none; }
+
+  footer {
+    text-align: center; margin-top: var(--space-xl);
+    font-family: var(--font-mono); font-size: var(--text-xs); color: var(--muted);
+  }
+
+  /* ---------- entrance: cards dealt face-down, staggered ---------- */
+  .wrap { opacity: 0; transition: opacity var(--duration-base) var(--ease-settle); }
+  .wrap.live { opacity: 1; }
+  .wrap.live .flip-scene { animation: deal var(--duration-base) var(--ease-settle) backwards; }
+  .wrap.live .flip-scene:nth-of-type(1) { animation-delay: 150ms; }
+  .wrap.live .flip-scene:nth-of-type(2) { animation-delay: 330ms; }
+  .wrap.live .flip-scene:nth-of-type(3) { animation-delay: 510ms; }
+  .wrap.live .flip-scene:nth-of-type(4) { animation-delay: 690ms; }
+  @keyframes deal {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ---------- hover: each element gets ONE distinct move ---------- */
+  @media (hover: hover) {
+    /* face-down card: lifts to the hand, star turns */
+    .card-back { transition: transform var(--duration-fast) var(--ease-settle), box-shadow var(--duration-fast) var(--ease-settle), border-color var(--duration-fast) var(--ease-settle); }
+    .back-art { transition: transform 500ms var(--ease-settle); }
+    .flip-scene:not(.flipped) .card-back:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 9%, transparent);
+    }
+    .flip-scene:not(.flipped) .card-back:hover .back-art { transform: rotate(12deg) scale(1.08); }
+
+    /* revealed card: the chart slowly magnifies */
+    .card-art img { transition: transform 900ms var(--ease-settle); }
+    .flipped .card-front:hover .card-art img { transform: scale(1.045); }
+
+    /* card name: a dashed course draws itself underneath */
+    .card-title h2 { position: relative; display: inline-block; }
+    .card-title h2::after {
+      content: ''; position: absolute; left: 0; bottom: -4px; height: 2px; width: 0;
+      background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 11px);
+      transition: width 700ms var(--ease-settle);
+    }
+    .card-title h2:hover::after { width: 100%; }
+
+    /* position label: its dashes get underway */
+    .position {
+      border-top: none;
+      background: repeating-linear-gradient(90deg, var(--rule) 0 5px, transparent 5px 10px) top left / 200% 1px no-repeat;
+      transition: background-position 1200ms linear;
+    }
+    .position:hover { background-position: -40px 0; }
+
+    /* subject name: a bearing line draws under it */
+    h1 em { position: relative; }
+    h1 em::after {
+      content: ''; position: absolute; left: 0; bottom: -2px; height: 1.5px; width: 0;
+      background: var(--accent); transition: width 500ms var(--ease-settle);
+    }
+    h1:hover em::after { width: 100%; }
+
+    /* eyebrow: the ruler stretches */
+    .eyebrow { transition: letter-spacing 600ms var(--ease-settle); }
+    .eyebrow:hover { letter-spacing: .22em; }
+
+    /* keyword: warms to the accent */
+    .keyword { transition: color 400ms var(--ease-settle); }
+    .keyword:hover { color: var(--accent); }
+
+    /* footer: the star swings a full turn */
+    footer::after { content: ' ✦'; display: inline-block; color: var(--accent); transition: transform 900ms var(--ease-settle); }
+    footer:hover::after { transform: rotate(360deg); }
+
+    /* buttons: lift with glow / warm tint */
+    .begin:hover { transform: translateY(-2px); box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+    .lens-btn:not(.active):hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); transform: translateY(-1px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .wrap { opacity: 1; }
+    .card-front .settle { opacity: 1; transform: none; }
+  }
+
+  /* ---------- larger viewports: breathing room, not a new layout ---------- */
+  @media (min-width: 640px) {
+    .wrap { padding: var(--space-2xl) var(--space-lg) var(--space-2xl); }
+    .card-content { min-height: 31rem; padding: var(--space-lg) var(--space-xl); }
+  }
+</style>
+</head>
+<body>
+
+  <div class="welcome" id="welcome">
+    <svg class="compass" viewBox="0 0 160 160" fill="none" stroke-linecap="round">
+      <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.5"/>
+      <path d="M 80 34 L 87 73 L 126 80 L 87 87 L 80 126 L 73 87 L 34 80 L 73 73 Z" fill="#CF3F02"/>
+    </svg>
+    <div class="eyebrow">DevSeed Tarot &middot; The Basemap Deck</div>
+    <h1>A reading for <em>{{SUBJECT}}</em></h1>
+    <div class="meta">{{GROUNDING_LINE}} &middot; {{DATE}}</div>
+    <p class="invite">Four cards, face down. Take your time.</p>
+    <button class="begin" id="begin" type="button">Begin</button>
+  </div>
+
+  <div class="wrap" data-lens="devseed" id="wrap">
+    <header>
+      <div class="eyebrow">DevSeed Tarot &middot; The Basemap Deck</div>
+      <h1>A reading for <em>{{SUBJECT}}</em></h1>
+      <div class="meta">{{GROUNDING_LINE}} &middot; {{DATE}}</div>
+    </header>
+
+    <p class="guide" id="guide">&nbsp;</p>
+
+    <div class="lens-row">
+      <div class="lens-toggle" role="tablist">
+        <button class="lens-btn active" data-set="devseed" type="button">DevSeed lens</button>
+        <button class="lens-btn" data-set="project" type="button">This project</button>
+      </div>
+    </div>
+
+    <div class="spread" id="spread">
+
+      <section class="flip-scene">
+        <div class="flip-inner">
+          <div class="card-back" role="button" tabindex="0" aria-label="Turn the Departure card">
+            <svg class="back-art" viewBox="0 0 160 160" fill="none">
+              <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.5"/>
+              <path d="M 80 44 L 85 75 L 116 80 L 85 85 L 80 116 L 75 85 L 44 80 L 75 75 Z" fill="#CF3F02" opacity="0.85"/>
+            </svg>
+            <div class="position">Departure</div>
+            <div class="hint">turn</div>
+          </div>
+          <div class="card-front">
+            <div class="card-art"><img src="icons/{{ICON1}}" alt=""></div>
+            <div class="card-scrim"></div>
+            <div class="card-content">
+              <div class="card-title settle s1">
+                <span class="numeral">{{NUM1}}</span>
+                <h2>{{NAME1}}</h2>
+              </div>
+              <div class="card-body">
+                <div class="position settle s2">Departure</div>
+                <div class="keyword settle s2">{{KEYWORD1}}</div>
+                <p class="lens lens-devseed settle s3">{{DEVSEED_TEXT1}}</p>
+                <p class="lens lens-project settle s3">{{PROJECT_TEXT1}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flip-scene">
+        <div class="flip-inner">
+          <div class="card-back" role="button" tabindex="0" aria-label="Turn the Present Position card">
+            <svg class="back-art" viewBox="0 0 160 160" fill="none">
+              <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.5"/>
+              <path d="M 80 44 L 85 75 L 116 80 L 85 85 L 80 116 L 75 85 L 44 80 L 75 75 Z" fill="#CF3F02" opacity="0.85"/>
+            </svg>
+            <div class="position">Present Position</div>
+            <div class="hint">turn</div>
+          </div>
+          <div class="card-front">
+            <div class="card-art"><img src="icons/{{ICON2}}" alt=""></div>
+            <div class="card-scrim"></div>
+            <div class="card-content">
+              <div class="card-title settle s1">
+                <span class="numeral">{{NUM2}}</span>
+                <h2>{{NAME2}}</h2>
+              </div>
+              <div class="card-body">
+                <div class="position settle s2">Present Position</div>
+                <div class="keyword settle s2">{{KEYWORD2}}</div>
+                <p class="lens lens-devseed settle s3">{{DEVSEED_TEXT2}}</p>
+                <p class="lens lens-project settle s3">{{PROJECT_TEXT2}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flip-scene">
+        <div class="flip-inner">
+          <div class="card-back" role="button" tabindex="0" aria-label="Turn the On the Horizon card">
+            <svg class="back-art" viewBox="0 0 160 160" fill="none">
+              <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.5"/>
+              <path d="M 80 44 L 85 75 L 116 80 L 85 85 L 80 116 L 75 85 L 44 80 L 75 75 Z" fill="#CF3F02" opacity="0.85"/>
+            </svg>
+            <div class="position">On the Horizon</div>
+            <div class="hint">turn</div>
+          </div>
+          <div class="card-front">
+            <div class="card-art"><img src="icons/{{ICON3}}" alt=""></div>
+            <div class="card-scrim"></div>
+            <div class="card-content">
+              <div class="card-title settle s1">
+                <span class="numeral">{{NUM3}}</span>
+                <h2>{{NAME3}}</h2>
+              </div>
+              <div class="card-body">
+                <div class="position settle s2">On the Horizon</div>
+                <div class="keyword settle s2">{{KEYWORD3}}</div>
+                <p class="lens lens-devseed settle s3">{{DEVSEED_TEXT3}}</p>
+                <p class="lens lens-project settle s3">{{PROJECT_TEXT3}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flip-scene">
+        <div class="flip-inner">
+          <div class="card-back" role="button" tabindex="0" aria-label="Turn the Steering Star card">
+            <svg class="back-art" viewBox="0 0 160 160" fill="none">
+              <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.5"/>
+              <path d="M 80 44 L 85 75 L 116 80 L 85 85 L 80 116 L 75 85 L 44 80 L 75 75 Z" fill="#CF3F02" opacity="0.85"/>
+            </svg>
+            <div class="position">The Steering Star</div>
+            <div class="hint">turn</div>
+          </div>
+          <div class="card-front">
+            <div class="card-art"><img src="icons/{{ICON4}}" alt=""></div>
+            <div class="card-scrim"></div>
+            <div class="card-content">
+              <div class="card-title settle s1">
+                <span class="numeral">{{NUM4}}</span>
+                <h2>{{NAME4}}</h2>
+              </div>
+              <div class="card-body">
+                <div class="position settle s2">The Steering Star</div>
+                <div class="keyword settle s2">{{KEYWORD4}}</div>
+                <p class="lens lens-devseed settle s3">{{DEVSEED_TEXT4}}</p>
+                <p class="lens lens-project settle s3">{{PROJECT_TEXT4}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <footer>Not fate &mdash; dead reckoning on a commit log and 22 made-up cards. &middot; devseed-tarot</footer>
+  </div>
+
+  <script>
+    var wrap = document.getElementById('wrap');
+    var spread = document.getElementById('spread');
+    var guide = document.getElementById('guide');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var prompts = [
+      'Breathe once. Turn a card.',
+      'Let it land. Another when ready.',
+      'Halfway. What’s stirring?',
+      'One left. Steady.',
+      'Your chart is drawn.'
+    ];
+    var turned = 0;
+
+    function setGuide(text) {
+      if (reduced) { guide.textContent = text; return; }
+      guide.classList.add('swap');
+      setTimeout(function () {
+        guide.textContent = text;
+        guide.classList.remove('swap');
+      }, 500);
+    }
+
+    // card backs sized to match their fronts
+    function sizeBacks() {
+      document.querySelectorAll('.flip-scene').forEach(function (scene) {
+        var front = scene.querySelector('.card-front');
+        scene.querySelector('.flip-inner').style.minHeight = front.offsetHeight + 'px';
+      });
+    }
+    window.addEventListener('load', sizeBacks);
+    window.addEventListener('resize', sizeBacks);
+
+    document.getElementById('begin').addEventListener('click', function () {
+      document.getElementById('welcome').classList.add('gone');
+      wrap.classList.add('live');
+      sizeBacks();
+      setTimeout(function () { guide.textContent = prompts[0]; }, reduced ? 0 : 900);
+    });
+
+    document.querySelectorAll('.card-back').forEach(function (back) {
+      function turn() {
+        var scene = back.closest('.flip-scene');
+        if (scene.classList.contains('flipped')) return;
+        scene.classList.add('flipped');
+        turned += 1;
+        setGuide(prompts[turned]);
+        if (turned === 4) {
+          wrap.classList.add('done');
+        } else if (!reduced) {
+          spread.classList.add('hold');
+          setTimeout(function () { spread.classList.remove('hold'); }, 1600);
+        }
+      }
+      back.addEventListener('click', turn);
+      back.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); turn(); }
+      });
+    });
+
+    document.querySelectorAll('.lens-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.classList.contains('active')) return;
+        document.querySelectorAll('.lens-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        wrap.setAttribute('data-lens', btn.dataset.set);
+        sizeBacks();
+      });
+    });
+  </script>
+</body>
+</html>

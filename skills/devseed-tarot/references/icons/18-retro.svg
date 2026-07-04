@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .lens { transform-box: fill-box; transform-origin: center; animation: focus 7s ease-in-out infinite; }
+      @keyframes focus { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.08); opacity: 1; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 30 120 Q 56 112 72 92 Q 92 66 122 46" stroke="#9a9490" stroke-width="2.5" opacity="0.7"/>
+  <circle cx="56" cy="108" r="3.5" fill="#CF3F02"/>
+  <circle cx="80" cy="82" r="3.5" fill="#CF3F02"/>
+  <circle cx="104" cy="60" r="3.5" fill="#CF3F02"/>
+  <circle class="lens" cx="80" cy="82" r="13" stroke="#CF3F02" stroke-width="2"/>
+  <path d="M 116 44 Q 124 50 132 42" stroke="#9a9490" stroke-width="2.5"/>
+</svg>

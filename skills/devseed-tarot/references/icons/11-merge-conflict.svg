@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .mark { transform-box: fill-box; transform-origin: center; animation: mark 6s ease-in-out infinite; }
+      .m2 { animation-delay: 1.5s; } .m3 { animation-delay: 3s; } .m4 { animation-delay: 4.5s; }
+      @keyframes mark { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.25); opacity: 1; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 16 38 Q 56 58 96 92 Q 116 110 130 126" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path d="M 12 62 Q 50 80 88 110 Q 104 122 114 132" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path d="M 30 26 Q 68 46 104 76 Q 122 92 136 108" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path d="M 144 38 Q 104 58 64 92 Q 44 110 30 126" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path d="M 148 62 Q 110 80 72 110 Q 56 122 46 132" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path d="M 130 26 Q 92 46 56 76 Q 38 92 24 108" stroke="#9a9490" stroke-width="2" opacity="0.6"/>
+  <path class="mark" d="M 76 60 L 84 68 M 84 60 L 76 68" stroke="#CF3F02" stroke-width="2.5"/>
+  <path class="mark m2" d="M 60 80 L 68 88 M 68 80 L 60 88" stroke="#CF3F02" stroke-width="2.5"/>
+  <path class="mark m3" d="M 92 80 L 100 88 M 100 80 L 92 88" stroke="#CF3F02" stroke-width="2.5"/>
+  <path class="mark m4" d="M 76 102 L 84 110 M 84 102 L 76 110" stroke="#CF3F02" stroke-width="2.5"/>
+</svg>

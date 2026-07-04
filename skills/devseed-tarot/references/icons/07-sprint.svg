@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .flow { animation: flow 9s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -78; } }
+      .sun { transform-box: fill-box; transform-origin: center; animation: sun 6s ease-in-out infinite; }
+      @keyframes sun { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <path d="M 36 54 Q 80 18 124 54" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="1 6" opacity="0.7"/>
+  <circle cx="48" cy="42" r="3.5" stroke="#9a9490" stroke-width="2"/>
+  <circle class="sun" cx="80" cy="27" r="4.5" fill="#CF3F02"/>
+  <circle cx="112" cy="42" r="3.5" stroke="#9a9490" stroke-width="2"/>
+  <circle cx="34" cy="108" r="6" stroke="#CF3F02" stroke-width="2.5"/>
+  <circle cx="34" cy="108" r="2" fill="#CF3F02"/>
+  <path class="flow" d="M 44 110 Q 80 118 116 110" stroke="#CF3F02" stroke-width="2.5" stroke-dasharray="8 5"/>
+  <circle cx="126" cy="108" r="7" stroke="#CF3F02" stroke-width="2.5"/>
+  <circle cx="126" cy="108" r="3.5" fill="#CF3F02"/>
+</svg>

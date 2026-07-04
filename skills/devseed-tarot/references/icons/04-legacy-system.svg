@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .pulse { transform-box: fill-box; transform-origin: center; animation: pulse 5s ease-in-out infinite; }
+      @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.85; } 50% { transform: scale(1.2); opacity: 1; } }
+    }
+  </style>
+  <circle cx="80" cy="80" r="74" stroke="#9a9490" stroke-width="1.5" stroke-dasharray="2 16" opacity="0.45"/>
+  <rect x="66" y="66" width="30" height="30" rx="2" stroke="#9a9490" stroke-width="2.5"/>
+  <path d="M 74 66 L 84 96" stroke="#9a9490" stroke-width="2" stroke-dasharray="3 3"/>
+  <path d="M 18 40 Q 44 56 63 69" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <path d="M 14 96 Q 40 92 63 88" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <path d="M 96 18 Q 90 44 86 63" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <path d="M 140 124 Q 112 108 99 95" stroke="#9a9490" stroke-width="2" stroke-dasharray="1 6"/>
+  <circle class="pulse" cx="79" cy="81" r="4.5" fill="#CF3F02"/>
+</svg>
