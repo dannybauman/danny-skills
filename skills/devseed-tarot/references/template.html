@@ -194,23 +194,28 @@
   .spread { display: flex; flex-direction: column; gap: var(--space-md); }
   .spread.hold .flip-scene:not(.flipped) { pointer-events: none; }
   .flip-scene { perspective: 1400px; }
-  .flip-inner {
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform var(--duration-flip) var(--ease-settle);
-  }
-  .flipped .flip-inner { transform: rotateY(180deg); }
+  .flip-inner { position: relative; }
 
+  /* Each FACE rotates independently — rotating a shared preserve-3d parent
+     breaks backface-visibility on Android Chrome (mirrored text bleeding
+     through). The visibility latch guarantees the hidden face never leaks. */
   .card-back, .card-front {
     backface-visibility: hidden; -webkit-backface-visibility: hidden;
     border: 1px solid var(--rule); border-radius: var(--radius-md);
     background: var(--card-bg);
+    transition: transform var(--duration-flip) var(--ease-settle);
   }
+  .card-back { transform: rotateY(0deg); }
+  .card-front { transform: rotateY(180deg); visibility: hidden; }
+  .flipped .card-back {
+    transform: rotateY(-180deg); visibility: hidden;
+    transition: transform var(--duration-flip) var(--ease-settle), visibility 0s linear var(--duration-flip);
+  }
+  .flipped .card-front { transform: rotateY(0deg); visibility: visible; }
   .card-back {
     position: absolute; inset: 0; z-index: 1;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: var(--space-xs); cursor: pointer;
-    transition: border-color var(--duration-fast) var(--ease-settle);
   }
   .flip-scene:not(.flipped) .card-back:hover { border-color: var(--accent); }
   .card-back .back-art { width: 4rem; height: 4rem; opacity: 0.8; }
@@ -288,10 +293,11 @@
 
   /* ---------- hover: each element gets ONE distinct move ---------- */
   @media (hover: hover) {
-    /* face-down card: lifts to the hand, star turns */
-    .card-back { transition: transform var(--duration-fast) var(--ease-settle), box-shadow var(--duration-fast) var(--ease-settle), border-color var(--duration-fast) var(--ease-settle); }
+    /* face-down card: lifts to the hand, star turns (lift on the wrapper so
+       it never fights the flip transform on the faces) */
+    .flip-inner { border-radius: var(--radius-md); transition: transform var(--duration-fast) var(--ease-settle), box-shadow var(--duration-fast) var(--ease-settle); }
     .back-art { transition: transform 500ms var(--ease-settle); }
-    .flip-scene:not(.flipped) .card-back:hover {
+    .flip-scene:not(.flipped) .flip-inner:hover {
       transform: translateY(-4px);
       box-shadow: 0 12px 28px color-mix(in srgb, var(--ink) 9%, transparent);
     }
@@ -541,6 +547,8 @@
     }
     window.addEventListener('load', sizeBacks);
     window.addEventListener('resize', sizeBacks);
+    // web fonts swap in late on mobile and change text height — re-measure
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(sizeBacks);
 
     document.getElementById('begin').addEventListener('click', function () {
       document.getElementById('welcome').classList.add('gone');
