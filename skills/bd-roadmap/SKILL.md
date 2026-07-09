@@ -35,7 +35,17 @@ Ask for (or pull from the request):
 - Foundation models and agentic AI in geospatial — what hyperscalers give away free, where the paid services gap is
 - **What peer consultancies and product entrants are doing**, ending in a ranked competitive white-space list: positions nobody credible occupies yet that this team could take
 
-Cite every claim with a URL and flag strong (multi-source) vs speculative. Parallel research subagents are worth it here (one per lane: competitors, US/multilateral funding, European funding). Keep the full sourced detail in a companion research note next to the roadmap, and pull only the sharpest items into the roadmap itself.
+Cite every claim with a URL and flag strong (multi-source) vs speculative. Parallel research subagents are worth it here (one per lane: competitors, funding per core region, other regions). Keep the full sourced detail in a companion research note next to the roadmap, and pull only the sharpest items into the roadmap itself.
+
+**The live bid shortlist.** After the program-level research, run a second sweep for solicitations that are actually open or imminent, and score them. This is the part BD teams act on the same week:
+
+1. *Sweep the real sources, not program pages*: SAM.gov/grants.gov/NSPIRES (note which recurring omnibus elements are between cycles and when they reopen), NSF solicitation pages, esa-star public tender actions, the EU Funding & Tenders portal, DestinE/ECMWF/EUMETSAT procurement pages, TED, UNGM and MDB portals, national agencies, foundation open calls. Record which portals are login-walled and say so rather than guessing.
+2. *Cross-check the pipeline*: never recommend something already being bid — instead flag if the live call is bigger than the pipeline entry suggests (an under-sized pursuit is a finding).
+3. *Score each item against three filters*: **strategy** (focus areas, open source posture, declared no-go markets), **value pattern** (does it match the win archetype from the pattern read, does it avoid the loss archetype), **size and eligibility** (can the team staff it, prime vs sub vs associated partner, for-profit leadable, set-asides, entity/registration requirements — eligibility kills more bids than fit does).
+4. *Output pursue / watch / pass*: pursue items get a close date and a named next move, watch items get the condition that would activate them, pass items get the reason on record so the decision isn't relitigated.
+5. *Name the standing infrastructure* the shortlist implies: release-day sweeps for recurring omnibuses, one-time portal registrations, and the partner bench for prime-blocked calls (university partners for grants a for-profit can't lead, consortium primes for agency tenders).
+
+**Other regions, honestly.** Alongside the core regions, run one lane on everywhere else the team could plausibly work. For each region: the concrete funded programs, who actually pays and how reliably, and the downsides stated plainly (procurement opacity, local-presence/in-country-value regimes, payment risk, values/surveillance-adjacency, travel cost vs deal size, intermediation). End it ranked: worth deliberate effort / opportunistic only / skip, with the deciding factor named. Downsides are the point of this section — a regions list without them is marketing.
 
 ## Step 2 — the markdown roadmap
 
@@ -49,7 +59,7 @@ Eight sections, each answering one question:
    - *Wins that then wobble, and why* — subcontract positions, weak-premise engagements, pilots that reshape mid-flight, single-point-of-failure staffing, one-offs that don't compound
    - *Most underestimated* — the small deals carrying option value
    - *Numbers a BD eye should hold* — average deal age, no-go discipline, stage concentration
-4. **Outside weather** — the researched trends, each with a "so what" for us, plus two evidence blocks: a **funding calendar** (dated table, soonest actionable first, with the "our move" column) and a **competitive white-space read** (who the named watch item is, what's being commoditized, which positions are unclaimed)
+4. **Outside weather** — the researched trends, each with a "so what" for us, plus four evidence blocks: a **funding calendar** (dated table, soonest actionable first, with the "our move" column), a **competitive white-space read** (who the named watch item is, what's being commoditized, which positions are unclaimed), an **other-regions read** (worth effort / opportunistic / skip, downsides stated plainly), and the **live bid shortlist** (pursue/watch/pass table, the part that gets acted on this week)
 5. **The roadmap** — three horizons (H2 now-year, H1 next-year, H2 next-year), 4-6 items each, verbs first
 6. **Islands / strategy areas** — what changes in the strategic bets, including any new area the evidence argues for
 7. **Scenarios** — two upside, two downside. Each: signal to watch, pre-move now, what we'd do if it hits. Note which pair is the base case

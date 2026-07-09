@@ -116,7 +116,7 @@
       "name": "bd-roadmap",
       "source": "./skills/bd-roadmap",
       "description": "Build a Development Seed BD roadmap (12-18 months out) as a markdown research doc plus a self-contained, DevSeed-branded HTML walkthrough with per-section feedback capture. Takes focus areas as input; works from pasted/exported pipeline data plus web research including an upcoming-funding calendar and a competitive white-space read. Outputs are confidential and stay private.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "license": "MIT"
     }
   ]
