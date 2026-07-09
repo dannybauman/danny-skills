@@ -73,7 +73,7 @@
     {
       "name": "slack-to-markdown",
       "source": "./skills/slack-to-markdown",
-      "description": "Extracts Slack conversations — single threads, channel message ranges, or \"from this message to now\" — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.",
+      "description": "Extracts Slack conversations \u2014 single threads, channel message ranges, or \"from this message to now\" \u2014 from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.",
       "version": "1.4.0",
       "license": "MIT"
     },
@@ -101,7 +101,7 @@
     {
       "name": "devseed-tarot",
       "source": "./skills/devseed-tarot",
-      "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault — no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
+      "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault \u2014 no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
       "version": "1.0.1",
       "license": "MIT"
     },
@@ -109,6 +109,13 @@
       "name": "port-to-open-standard",
       "source": "./skills/port-to-open-standard",
       "description": "Convert proprietary IDE commands (like Claude Code custom slash commands) into cross-platform skills, commands, or MCP servers that work across Antigravity, Claude Code, and Cursor. Scaffold new standard workflows.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "bd-roadmap",
+      "source": "./skills/bd-roadmap",
+      "description": "Build a Development Seed BD roadmap (12-18 months out) as a markdown research doc plus a self-contained, DevSeed-branded HTML walkthrough with per-section feedback capture. Takes focus areas as input; works from pasted/exported pipeline data and web research. Outputs are confidential and stay private.",
       "version": "1.0.0",
       "license": "MIT"
     }

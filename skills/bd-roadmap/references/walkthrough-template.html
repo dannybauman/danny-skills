@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DevSeed Roadmap · SAMPLE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  BD roadmap walkthrough template. All content below marked SAMPLE is fake
+  placeholder data — replace every SAMPLE block with real (banded!) content.
+  Keep the structure: numbered sections, one feedback .ask box per section,
+  band legend in the hero, don't-circulate line in the footer.
+  After filling in, inline the Google Fonts (recipe in SKILL.md) so the file
+  is fully self-contained.
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,400;0,600;0,700;1,400&family=Roboto+Mono:wght@400;500&family=Roboto:wght@300;400;500;700&display=swap');
+
+  :root {
+    --bg: #f7f4ef;
+    --panel: #ffffff;
+    --panel-2: #efeae2;
+    --ink: #443F3F;
+    --mid: #4a4440;
+    --muted: #9a9490;
+    --rule: #dedad4;
+    --accent: #CF3F02;
+    --accent-soft: #f9e4d9;
+    --green: #2a5c45;
+    --green-soft: #dfe9e2;
+    --blue: #1d4e8f;
+    --blue-soft: #dee7f2;
+    --series: #CF3F02;
+    --series-soft: #f0c9b4;
+    --shadow: 0 1px 2px rgba(68,63,63,.05), 0 4px 14px rgba(68,63,63,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171310; --panel: #201C19; --panel-2: #2A2420;
+      --ink: #EDE7E0; --mid: #C9BFB5; --muted: #8A8078; --rule: #3A332D;
+      --accent: #E2622B; --accent-soft: #40261A;
+      --green: #6FB08C; --green-soft: #21332A;
+      --blue: #7FA8DC; --blue-soft: #1E2B3D;
+      --series: #E2622B; --series-soft: #4A2C1B;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171310; --panel: #201C19; --panel-2: #2A2420;
+    --ink: #EDE7E0; --mid: #C9BFB5; --muted: #8A8078; --rule: #3A332D;
+    --accent: #E2622B; --accent-soft: #40261A;
+    --green: #6FB08C; --green-soft: #21332A;
+    --blue: #7FA8DC; --blue-soft: #1E2B3D;
+    --series: #E2622B; --series-soft: #4A2C1B;
+    --shadow: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.3);
+  }
+  :root[data-theme="light"] {
+    --bg: #f7f4ef; --panel: #ffffff; --panel-2: #efeae2;
+    --ink: #443F3F; --mid: #4a4440; --muted: #9a9490; --rule: #dedad4;
+    --accent: #CF3F02; --accent-soft: #f9e4d9;
+    --green: #2a5c45; --green-soft: #dfe9e2;
+    --blue: #1d4e8f; --blue-soft: #dee7f2;
+    --series: #CF3F02; --series-soft: #f0c9b4;
+    --shadow: 0 1px 2px rgba(68,63,63,.05), 0 4px 14px rgba(68,63,63,.06);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.6 Roboto, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .cond { font-family: "Roboto Condensed", Roboto, sans-serif; }
+  .mono { font-family: "Roboto Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  nav { position: sticky; top: 0; z-index: 50; background: var(--bg); border-bottom: 1px solid var(--rule); }
+  nav .wrap { display: flex; gap: 2px; overflow-x: auto; padding: 10px 24px; }
+  nav a {
+    font-family: "Roboto Mono", monospace; font-size: 11.5px; letter-spacing: .02em;
+    color: var(--mid); text-decoration: none; white-space: nowrap;
+    padding: 4px 10px; border-radius: 3px;
+  }
+  nav a:hover, nav a:focus-visible { color: var(--accent); background: var(--panel-2); outline: none; }
+
+  header.hero { padding: 64px 0 44px; border-bottom: 3px solid var(--accent); }
+  .eyebrow {
+    font-family: "Roboto Mono", monospace; font-size: 11.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  h1 {
+    font-family: "Roboto Condensed", sans-serif; font-weight: 700;
+    font-size: clamp(36px, 6vw, 58px); line-height: 1.05; margin: 14px 0 16px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 18.5px; font-weight: 300; color: var(--mid); max-width: 44em; margin: 0; }
+  .hero-meta { margin-top: 22px; font-size: 13px; color: var(--mid); max-width: 52em; }
+
+  section { padding: 52px 0 4px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .sec-num { font-family: "Roboto Mono", monospace; font-size: 13px; color: var(--accent); }
+  h2 {
+    font-family: "Roboto Condensed", sans-serif; font-weight: 700; font-size: 31px;
+    margin: 0; text-wrap: balance;
+  }
+  h3 { font-family: "Roboto Condensed", sans-serif; font-weight: 600; font-size: 19.5px; margin: 30px 0 8px; }
+  p, li { max-width: 46em; }
+  .muted-t { color: var(--mid); }
+  .small { font-size: 13.5px; }
+
+  .card-label {
+    font-family: "Roboto Mono", monospace; font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--mid);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .card-label::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 24px 0; }
+  .tile {
+    background: var(--panel); border-radius: 4px; border-top: 3px solid var(--accent);
+    padding: 14px 16px; box-shadow: var(--shadow);
+  }
+  .tile .v { font-family: "Roboto Condensed", sans-serif; font-size: 28px; font-weight: 700; color: var(--accent); }
+  .tile .k { font-size: 11px; font-family: "Roboto Mono", monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--mid); margin-top: 5px; }
+  .tile .d { font-size: 12.5px; color: var(--mid); margin-top: 5px; line-height: 1.45; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 22px 24px; margin: 20px 0; box-shadow: var(--shadow);
+  }
+  .panel h3:first-child, .panel .card-label + h3 { margin-top: 0; }
+
+  figure { margin: 0; }
+  figcaption { font-size: 12.5px; color: var(--mid); margin-top: 12px; font-family: "Roboto Mono", monospace; line-height: 1.5; }
+
+  .colchart { display: flex; align-items: flex-end; gap: 18px; height: 200px; padding-top: 26px; }
+  .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; position: relative; }
+  .col .bar { background: var(--series-soft); border-radius: 3px 3px 0 0; min-height: 4px; position: relative; cursor: default; }
+  .col .bar.hot { background: var(--series); }
+  .col .val { position: absolute; top: -24px; width: 100%; text-align: center; font-size: 13px; font-weight: 500; }
+  .col .lab { text-align: center; font-size: 12px; color: var(--mid); margin-top: 8px; font-family: "Roboto Mono", monospace; }
+
+  .rowchart { display: grid; grid-template-columns: 160px 1fr 64px; gap: 6px 12px; align-items: center; margin-top: 8px; }
+  .rowchart .rlab { font-size: 12.5px; color: var(--mid); text-align: right; }
+  .rowchart .track { height: 18px; position: relative; }
+  .rowchart .fill { height: 100%; border-radius: 0 3px 3px 0; min-width: 3px; cursor: default; background: var(--series); }
+  .rowchart .rval { font-size: 12.5px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+  .chip {
+    background: var(--panel); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 5px 12px; font-size: 13.5px; display: inline-flex; gap: 9px; align-items: center;
+    box-shadow: var(--shadow);
+  }
+  .chip .band { font-family: "Roboto Mono", monospace; font-size: 10.5px; font-weight: 500; color: var(--green); }
+  .chip .band.xl { color: var(--accent); }
+  .chip.tagged { border-left: 3px solid var(--blue); }
+
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--mid); margin-top: 14px; flex-wrap: wrap; font-family: "Roboto Mono", monospace; }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  details.tbl { margin-top: 10px; }
+  details.tbl summary { font-size: 12.5px; color: var(--mid); cursor: pointer; font-family: "Roboto Mono", monospace; }
+  table { border-collapse: collapse; font-size: 13.5px; margin-top: 10px; width: 100%; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+  th { color: var(--mid); font-weight: 500; font-family: "Roboto Mono", monospace; font-size: 12px; }
+  td.num, th.num { text-align: right; }
+  .tblwrap { overflow-x: auto; }
+
+  .compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 20px 0; }
+  .arch { background: var(--panel); border-radius: 4px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .arch.win { border-top: 3px solid var(--green); }
+  .arch.lose { border-top: 3px solid var(--accent); }
+  .arch h3 { margin: 0 0 8px; }
+  .arch p { font-size: 14.5px; margin: 0 0 8px; }
+  .arch .ev { font-size: 12.5px; color: var(--mid); font-family: "Roboto Mono", monospace; line-height: 1.55; }
+
+  .wobble { border-left: 3px solid var(--rule); padding: 2px 0 2px 16px; margin: 14px 0; }
+  .wobble b { display: block; }
+  .wobble p { font-size: 14px; color: var(--mid); margin: 3px 0 0; }
+
+  .statrow { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+  .stat { flex: 1; min-width: 180px; padding: 10px 14px; background: var(--panel); border-radius: 4px; border-top: 3px solid var(--green); box-shadow: var(--shadow); }
+  .stat .sv { font-family: "Roboto Condensed", sans-serif; font-size: 24px; font-weight: 700; color: var(--green); }
+  .stat .sl { font-size: 11.5px; color: var(--mid); margin-top: 2px; }
+
+  .horizon { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; margin: 24px 0; }
+  .hz { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .hz .sub { font-family: "Roboto Mono", monospace; font-size: 11px; color: var(--accent); letter-spacing: .1em; text-transform: uppercase; }
+  .hz h3 { margin: 4px 0 0; font-size: 17.5px; }
+  .hz ol { padding-left: 20px; margin: 12px 0 0; }
+  .hz li { font-size: 14px; margin-bottom: 9px; }
+
+  .seaband { border-left: 3px solid var(--rule); padding: 4px 0 4px 18px; margin: 18px 0; }
+  .seaband.mainland { border-color: var(--mid); }
+  .seaband.islands { border-color: var(--green); }
+  .seaband.nearsea { border-color: var(--accent); }
+  .bandlab { font-family: "Roboto Mono", monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--mid); }
+  .island-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 10px; margin-top: 10px; }
+  .island { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 13px 15px; }
+  .island b { display: block; margin-bottom: 2px; font-family: "Roboto Condensed", sans-serif; font-size: 16px; }
+  .island .state { font-family: "Roboto Mono", monospace; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+  .state.developed, .state.structured { color: var(--green); }
+  .state.wip { color: var(--blue); }
+  .state.empty, .state.proposed { color: var(--accent); }
+  .island p { font-size: 13px; color: var(--mid); margin: 6px 0 0; }
+
+  .scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 24px 0; }
+  .scn { background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; box-shadow: var(--shadow); overflow: hidden; }
+  .scn > button { all: unset; display: block; width: 100%; padding: 15px 18px; cursor: pointer; }
+  .scn > button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .scn h3 { margin: 2px 0 0; font-size: 17px; }
+  .scn .dir { font-family: "Roboto Mono", monospace; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
+  .dir.up { color: var(--green); }
+  .dir.down { color: var(--accent); }
+  .scn .hint { font-size: 12.5px; color: var(--mid); margin-top: 4px; }
+  .scn .body { display: none; padding: 0 18px 16px; font-size: 14px; margin: 0; }
+  .scn.open .body { display: block; }
+  .scn .body dt { font-family: "Roboto Mono", monospace; font-weight: 500; margin-top: 10px; font-size: 10.5px; color: var(--mid); text-transform: uppercase; letter-spacing: .06em; }
+  .scn .body dd { margin: 3px 0 0; }
+
+  .ask {
+    border-left: 3px solid var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+    border-radius: 0 4px 4px 0; padding: 14px 18px; margin: 26px 0 40px;
+  }
+  .ask .q { font-weight: 500; font-size: 14.5px; }
+  .ask textarea {
+    width: 100%; margin-top: 10px; min-height: 54px; border-radius: 3px;
+    border: 1px solid var(--rule); background: var(--panel); color: var(--ink);
+    padding: 10px 12px; font: 14px/1.5 Roboto, sans-serif; resize: vertical;
+  }
+  .ask textarea:focus-visible { outline: 2px solid var(--accent); }
+  .ask .saved { font-family: "Roboto Mono", monospace; font-size: 10.5px; color: var(--muted); margin-top: 4px; min-height: 1em; }
+
+  .copybar { position: sticky; bottom: 16px; display: flex; justify-content: flex-end; pointer-events: none; margin-top: 20px; }
+  .copybar button {
+    pointer-events: auto; border: none; border-radius: 3px; padding: 12px 20px;
+    background: var(--accent); color: #fff; font: 600 14px "Roboto Condensed", sans-serif;
+    letter-spacing: .03em; cursor: pointer; box-shadow: var(--shadow);
+  }
+  .copybar button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  #tooltip {
+    position: fixed; z-index: 100; background: var(--ink); color: var(--bg);
+    font-size: 12.5px; padding: 6px 10px; border-radius: 3px; pointer-events: none;
+    display: none; max-width: 260px;
+  }
+
+  a { color: var(--blue); }
+  .srcs { font-size: 13.5px; }
+
+  footer {
+    padding: 36px 0 72px; color: var(--muted); font-size: 12px;
+    font-family: "Roboto Mono", monospace; border-top: 3px solid var(--accent); margin-top: 48px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .scn > button, nav a, .chip { transition: background .15s ease, color .15s ease; }
+  }
+</style>
+</head>
+<body>
+
+<nav aria-label="Sections"><div class="wrap">
+  <a href="#stand">01 Where we stand</a>
+  <a href="#pipeline">02 Pipeline evidence</a>
+  <a href="#patterns">03 Pattern read</a>
+  <a href="#weather">04 Outside weather</a>
+  <a href="#roadmap">05 Roadmap</a>
+  <a href="#islands">06 Islands</a>
+  <a href="#scenarios">07 Scenarios</a>
+  <a href="#beliefs">08 Beliefs</a>
+</div></nav>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Development Seed · BD working draft · DATE</div>
+  <h1>SAMPLE: a chart for the next eighteen months</h1>
+  <p class="lede">SAMPLE one-paragraph framing of what this walkthrough covers. End with the stance: nothing here is decided, the point is for you to argue with it.</p>
+  <p class="hero-meta">Deal sizes are shown as bands, not figures: <span class="mono">S</span> under $100K · <span class="mono">M</span> $100–300K · <span class="mono">L</span> $300–750K · <span class="mono">XL</span> $750K+. Each section ends with a question. Your notes save in this browser only, and the button at the end copies them all, ready to paste in a Slack thread.</p>
+</header>
+
+<section id="stand">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Where we stand</h2></div>
+  <p class="muted-t">SAMPLE one-line summary of the starting position.</p>
+  <div class="tiles">
+    <div class="tile"><div class="v">$00M</div><div class="k">SAMPLE anchor metric</div><div class="d">only public or company-shared figures here</div></div>
+    <div class="tile"><div class="v">$0.0M</div><div class="k">SAMPLE quarter metric</div><div class="d">aggregates only, never per-deal</div></div>
+  </div>
+
+  <div class="panel">
+    <figure>
+      <div class="card-label">SAMPLE chart title</div>
+      <div class="colchart" role="img" aria-label="SAMPLE description of the bar chart for screen readers">
+        <div class="col"><div class="bar" style="height:55%" data-tip="SAMPLE tooltip"><span class="val mono">2.1</span></div><div class="lab">Q1</div></div>
+        <div class="col"><div class="bar" style="height:40%" data-tip="SAMPLE tooltip"><span class="val mono">1.5</span></div><div class="lab">Q2</div></div>
+        <div class="col"><div class="bar hot" style="height:100%" data-tip="SAMPLE tooltip · record"><span class="val mono">3.8</span></div><div class="lab">Q3</div></div>
+      </div>
+      <figcaption>SAMPLE caption: what the units are, what's excluded, source + as-of date. Mark the emphasized bar's meaning.</figcaption>
+    </figure>
+  </div>
+
+  <p>SAMPLE honest-caveats paragraph: what keeps the rosy numbers honest.</p>
+
+  <div class="ask" data-key="stand">
+    <div class="q">SAMPLE section question — specific, answerable, not "any thoughts?"</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on where we stand"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="pipeline">
+  <div class="sec-head"><span class="sec-num">02</span><h2>What the pipeline is telling us</h2></div>
+
+  <h3>SAMPLE claim one (the strongest signal)</h3>
+  <p>SAMPLE one-paragraph argument for the claim.</p>
+  <div class="chips">
+    <span class="chip">SAMPLE deal name <span class="band xl">XL</span></span>
+    <span class="chip">SAMPLE deal name <span class="band">L</span></span>
+    <span class="chip">SAMPLE deal name <span class="band">M</span></span>
+  </div>
+
+  <h3>SAMPLE claim two</h3>
+  <p>SAMPLE argument.</p>
+
+  <div class="panel">
+    <figure>
+      <div class="card-label">Open pipeline by stage</div>
+      <div class="rowchart" id="stagechart" role="img" aria-label="SAMPLE description of stage distribution"></div>
+      <div class="legend"><span><span class="sw" style="background:var(--series)"></span>share of open pipeline value (darker = later stage)</span></div>
+      <figcaption>SAMPLE caption with deal count, total (aggregate only), source + as-of date.</figcaption>
+      <details class="tbl"><summary>Table view</summary><div class="tblwrap">
+        <table>
+          <tr><th>Stage</th><th class="num">Deals</th><th class="num">Share of open value</th></tr>
+          <tr><td>SAMPLE stage</td><td class="num">5</td><td class="num">10%</td></tr>
+        </table>
+      </div></details>
+    </figure>
+  </div>
+
+  <h3>The big open swings</h3>
+  <div class="chips">
+    <span class="chip tagged">SAMPLE deal (tagged segment) <span class="band">L</span></span>
+    <span class="chip">SAMPLE deal <span class="band">L</span></span>
+  </div>
+  <p class="small muted-t">SAMPLE legend for the tag + the banding reminder.</p>
+
+  <div class="ask" data-key="pipeline">
+    <div class="q">SAMPLE section question.</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on pipeline evidence"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="patterns">
+  <div class="sec-head"><span class="sec-num">03</span><h2>The pattern read: what wins, what stalls</h2></div>
+  <p class="muted-t">SAMPLE framing: these are the patterns a bid decision should be checked against.</p>
+
+  <div class="compare">
+    <div class="arch win">
+      <h3>Our most likely successful project</h3>
+      <p>SAMPLE archetype sentence.</p>
+      <div class="ev">Evidence: SAMPLE ladder examples (small entry → bigger phase).</div>
+    </div>
+    <div class="arch lose">
+      <h3>Our most likely unsuccessful project</h3>
+      <p>SAMPLE archetype sentence.</p>
+      <div class="ev">Evidence: SAMPLE list of losses that fit, and the corollary.</div>
+    </div>
+  </div>
+
+  <h3>Wins that then wobble, and why</h3>
+  <div class="wobble"><b>SAMPLE wobble pattern</b><p>SAMPLE example and lesson.</p></div>
+  <div class="wobble"><b>SAMPLE wobble pattern</b><p>SAMPLE example and lesson.</p></div>
+
+  <h3>Most underestimated, in our own pipeline right now</h3>
+  <ul>
+    <li><b>SAMPLE underestimated thing</b>: why it carries option value.</li>
+  </ul>
+
+  <div class="statrow">
+    <div class="stat"><div class="sv">~5 mo</div><div class="sl">SAMPLE: average deal age and what it implies</div></div>
+    <div class="stat"><div class="sv">13</div><div class="sl">SAMPLE: no-go discipline stat</div></div>
+  </div>
+
+  <div class="ask" data-key="patterns">
+    <div class="q">SAMPLE section question.</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on the pattern read"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="weather">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Outside weather</h2></div>
+  <p class="muted-t">Researched DATE, sources at the bottom of the page.</p>
+
+  <div class="panel">
+    <h3>SAMPLE trend heading</h3>
+    <p>SAMPLE researched paragraph ending with the "so what" for us.</p>
+    <h3>SAMPLE trend heading</h3>
+    <p>SAMPLE researched paragraph.</p>
+  </div>
+
+  <div class="ask" data-key="weather">
+    <div class="q">SAMPLE section question.</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on outside weather"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="sec-head"><span class="sec-num">05</span><h2>The roadmap</h2></div>
+
+  <div class="horizon">
+    <div class="hz">
+      <div class="sub">SAMPLE horizon 1</div>
+      <h3>SAMPLE horizon theme</h3>
+      <ol>
+        <li>SAMPLE item, verb first.</li>
+        <li>SAMPLE item.</li>
+      </ol>
+    </div>
+    <div class="hz">
+      <div class="sub">SAMPLE horizon 2</div>
+      <h3>SAMPLE horizon theme</h3>
+      <ol><li>SAMPLE item.</li></ol>
+    </div>
+    <div class="hz">
+      <div class="sub">SAMPLE horizon 3</div>
+      <h3>SAMPLE horizon theme</h3>
+      <ol><li>SAMPLE item.</li></ol>
+    </div>
+  </div>
+
+  <div class="ask" data-key="roadmap">
+    <div class="q">What is missing from these horizons, and what here would you cut?</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on the roadmap"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="islands">
+  <div class="sec-head"><span class="sec-num">06</span><h2>The islands, redrawn</h2></div>
+  <p class="muted-t">Mainland is mature offering, islands are deliberate bets, the near sea is where candidates form. What matters most is what moved.</p>
+
+  <div class="seaband mainland">
+    <div class="bandlab">Mainland · mature offerings</div>
+    <div class="island-cards">
+      <div class="island"><b>SAMPLE offering</b><p>SAMPLE one-liner.</p></div>
+    </div>
+  </div>
+
+  <div class="seaband islands">
+    <div class="bandlab">Islands · the bets</div>
+    <div class="island-cards">
+      <div class="island"><b>SAMPLE island</b><span class="state developed">developed</span><p>SAMPLE what changes.</p></div>
+      <div class="island"><b>SAMPLE island</b><span class="state empty">empty → structure it</span><p>SAMPLE what changes.</p></div>
+    </div>
+  </div>
+
+  <div class="seaband nearsea">
+    <div class="bandlab">Near sea · candidates, ranked</div>
+    <div class="island-cards">
+      <div class="island"><b>SAMPLE candidate</b><span class="state proposed">proposed</span><p>SAMPLE evidence, inside and outside.</p></div>
+    </div>
+  </div>
+
+  <div class="ask" data-key="islands">
+    <div class="q">SAMPLE section question.</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on islands"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="scenarios">
+  <div class="sec-head"><span class="sec-num">07</span><h2>Scenarios: what we would do if</h2></div>
+  <p class="muted-t">Click a card. Note which combination is arguably the base case.</p>
+
+  <div class="scenarios">
+    <div class="scn"><button aria-expanded="false">
+      <span class="dir down">downside</span><h3>SAMPLE downside scenario</h3>
+      <div class="hint">SAMPLE one-line trigger</div></button>
+      <dl class="body">
+        <dt>Signal to watch</dt><dd>SAMPLE</dd>
+        <dt>Pre-move now</dt><dd>SAMPLE</dd>
+        <dt>If it hits</dt><dd>SAMPLE</dd>
+      </dl>
+    </div>
+    <div class="scn"><button aria-expanded="false">
+      <span class="dir up">upside</span><h3>SAMPLE upside scenario</h3>
+      <div class="hint">SAMPLE one-line trigger</div></button>
+      <dl class="body">
+        <dt>Signal to watch</dt><dd>SAMPLE</dd>
+        <dt>Pre-move now</dt><dd>SAMPLE</dd>
+        <dt>If it hits</dt><dd>SAMPLE</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="ask" data-key="scenarios">
+    <div class="q">Which scenario are we least prepared for, and what pre-move is missing?</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on scenarios"></textarea>
+    <div class="saved"></div>
+  </div>
+</section>
+
+<section id="beliefs">
+  <div class="sec-head"><span class="sec-num">08</span><h2>What we would have to believe</h2></div>
+  <div class="panel">
+    <ol>
+      <li>SAMPLE falsifiable belief, with where the evidence will show up.</li>
+      <li>SAMPLE belief.</li>
+    </ol>
+  </div>
+
+  <div class="ask" data-key="beliefs">
+    <div class="q">Which belief is shakiest, and anything else the roadmap should say?</div>
+    <textarea placeholder="Your note…" aria-label="Feedback on beliefs"></textarea>
+    <div class="saved"></div>
+  </div>
+
+  <div class="copybar"><button id="copyall">Copy my notes</button></div>
+</section>
+
+<section id="sources">
+  <div class="sec-head"><span class="sec-num">··</span><h2>Sources</h2></div>
+  <div class="panel srcs">
+    <p><b>Internal</b>: SAMPLE list of internal sources with as-of dates.</p>
+    <p><b>External</b>: SAMPLE linked citations for every researched claim.</p>
+  </div>
+</section>
+
+<footer>
+  Working draft, AUTHOR, DATE. Deal sizes banded on purpose. Please don't circulate beyond the BD team.
+</footer>
+
+</div>
+<div id="tooltip" role="status"></div>
+
+<script>
+  // Stage chart: replace with real [label, value, dealCount] rows.
+  // Values only drive relative widths and % shares — they never render as dollars.
+  const stages = [
+    ["SAMPLE stage A", 300, 5], ["SAMPLE stage B", 1055, 9], ["SAMPLE stage C", 4288, 17]
+  ];
+  const total = stages.reduce((s, r) => s + r[1], 0);
+  const max = Math.max(...stages.map(r => r[1]));
+  const chart = document.getElementById("stagechart");
+  stages.forEach(([lab, val, n], i) => {
+    const pct = Math.round(val / total * 100);
+    const l = document.createElement("div"); l.className = "rlab"; l.textContent = lab;
+    const t = document.createElement("div"); t.className = "track";
+    const f = document.createElement("div"); f.className = "fill";
+    f.style.width = (val / max * 100) + "%";
+    f.style.opacity = (0.35 + 0.65 * (i / (stages.length - 1 || 1))).toFixed(2);
+    f.dataset.tip = lab + " · " + n + " deal" + (n === 1 ? "" : "s") + " · " + (pct < 1 ? "<1" : pct) + "% of open value";
+    t.appendChild(f);
+    const v = document.createElement("div"); v.className = "rval mono";
+    v.textContent = (pct < 1 ? "<1" : pct) + "%";
+    chart.append(l, t, v);
+  });
+
+  // Shared tooltip
+  const tip = document.getElementById("tooltip");
+  document.addEventListener("mousemove", e => {
+    const el = e.target.closest("[data-tip]");
+    if (el) {
+      tip.textContent = el.dataset.tip;
+      tip.style.display = "block";
+      tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + "px";
+      tip.style.top = (e.clientY + 16) + "px";
+    } else tip.style.display = "none";
+  });
+
+  // Scenario cards
+  document.querySelectorAll(".scn > button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.parentElement;
+      const open = card.classList.toggle("open");
+      btn.setAttribute("aria-expanded", open);
+    });
+  });
+
+  // Feedback notes → localStorage + copy all
+  const KEY = "ds-bd-roadmap-notes";  // change per roadmap edition so old notes don't bleed in
+  const store = JSON.parse(localStorage.getItem(KEY) || "{}");
+  document.querySelectorAll(".ask").forEach(ask => {
+    const k = ask.dataset.key, ta = ask.querySelector("textarea"), saved = ask.querySelector(".saved");
+    ta.value = store[k] || "";
+    let timer;
+    ta.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        store[k] = ta.value;
+        localStorage.setItem(KEY, JSON.stringify(store));
+        saved.textContent = ta.value ? "saved in this browser" : "";
+      }, 400);
+    });
+    if (ta.value) saved.textContent = "saved in this browser";
+  });
+  document.getElementById("copyall").addEventListener("click", async e => {
+    const parts = [];
+    document.querySelectorAll(".ask").forEach(ask => {
+      const v = ask.querySelector("textarea").value.trim();
+      if (v) parts.push("*" + ask.querySelector(".q").textContent.trim() + "*\n" + v);
+    });
+    const text = parts.length
+      ? "Roadmap walkthrough feedback:\n\n" + parts.join("\n\n")
+      : "(no notes yet — jot thoughts in the boxes above first)";
+    try {
+      await navigator.clipboard.writeText(text);
+      e.target.textContent = parts.length ? "Copied — paste in Slack" : "No notes yet";
+    } catch {
+      e.target.textContent = "Copy failed — select manually";
+    }
+    setTimeout(() => e.target.textContent = "Copy my notes", 2500);
+  });
+</script>
+</body>
+</html>
