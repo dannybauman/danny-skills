@@ -30,11 +30,12 @@ Ask for (or pull from the request):
 
 **Outside research.** Web research, current-dated, on:
 - Funding climate for the anchor clients (NASA budget cycle, ESA/EU programs like Copernicus, Destination Earth, the EU multiannual budget)
+- **The upcoming funding calendar**: concrete calls, tenders, and recompetes over the next 6-24 months with dates and sizes — ROSES elements, NSF, NOAA vehicles, ESA ITTs (esa-star), Destination Earth procurement, Horizon Europe work programmes, EOSC calls, national agencies (UKSA, CNES, DLR), development banks, and philanthropy rounds (Bezos, Google.org). Note eligibility mechanics (US entity vs EU consortium roles, small-business set-asides, for-profit-can't-lead cases) — eligibility often matters more than fit
 - Buyer segments expanding geospatial/EO spend (climate risk & insurance, energy, development banks/UN, philanthropy)
 - Foundation models and agentic AI in geospatial — what hyperscalers give away free, where the paid services gap is
-- What peer consultancies are doing
+- **What peer consultancies and product entrants are doing**, ending in a ranked competitive white-space list: positions nobody credible occupies yet that this team could take
 
-Cite every claim with a URL and flag strong (multi-source) vs speculative. Parallel research subagents are worth it here.
+Cite every claim with a URL and flag strong (multi-source) vs speculative. Parallel research subagents are worth it here (one per lane: competitors, US/multilateral funding, European funding). Keep the full sourced detail in a companion research note next to the roadmap, and pull only the sharpest items into the roadmap itself.
 
 ## Step 2 — the markdown roadmap
 
@@ -48,7 +49,7 @@ Eight sections, each answering one question:
    - *Wins that then wobble, and why* — subcontract positions, weak-premise engagements, pilots that reshape mid-flight, single-point-of-failure staffing, one-offs that don't compound
    - *Most underestimated* — the small deals carrying option value
    - *Numbers a BD eye should hold* — average deal age, no-go discipline, stage concentration
-4. **Outside weather** — the researched trends, each with a "so what" for us
+4. **Outside weather** — the researched trends, each with a "so what" for us, plus two evidence blocks: a **funding calendar** (dated table, soonest actionable first, with the "our move" column) and a **competitive white-space read** (who the named watch item is, what's being commoditized, which positions are unclaimed)
 5. **The roadmap** — three horizons (H2 now-year, H1 next-year, H2 next-year), 4-6 items each, verbs first
 6. **Islands / strategy areas** — what changes in the strategic bets, including any new area the evidence argues for
 7. **Scenarios** — two upside, two downside. Each: signal to watch, pre-move now, what we'd do if it hits. Note which pair is the base case
