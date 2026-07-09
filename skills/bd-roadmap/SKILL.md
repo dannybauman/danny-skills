@@ -109,6 +109,10 @@ QA before delivering: screenshot both themes with headless Chrome and actually l
   --screenshot=qa.png --window-size=1280,3200 --hide-scrollbars "file://$PWD/walkthrough.html"
 ```
 
+## The lockstep rule
+
+The markdown roadmap and the walkthrough are the same content in two forms. Any substantive change to one lands in the other in the same session — new sections, new evidence, corrected figures, removals. Never let the doc get ahead of the page. After every walkthrough edit, re-render (headless screenshot) and look at the changed region.
+
 ## Step 5 — deliver
 
 Hand over both files. Remind the runner: the walkthrough needs no hosting, feedback notes save per-browser, and the copy-all button output is formatted to paste straight into a Slack thread.
