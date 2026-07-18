@@ -1,15 +1,42 @@
 ---
 name: integrating-local-models
-description: "Integrate a local LLM (Ollama / LM Studio) or local audio model (Whisper STT / Kokoro / Piper TTS) into an app or agent. Probes endpoint, completion, and tool-calling across 3 rungs, picks the right provider, flags the completion-safe vs agentic-risky gate, and routes audio by privacy/offline/latency. Use when wiring a local model into an app or agent runner, choosing between Ollama and LM Studio, debugging local tool-calling or context-overflow failures, or picking a local STT/TTS model."
+description: "Integrate a local LLM (Ollama / LM Studio) or local audio model (Whisper STT / Kokoro / Piper TTS) into an app or agent. Starts by sweeping for the decisions that need NO model (rung 0), then probes endpoint, completion, and tool-calling, picks the right provider, flags the completion-safe vs agentic-risky gate, and routes audio by privacy/offline/latency. Use when wiring a local model into an app or agent runner, deciding which steps should go local at all, choosing between Ollama and LM Studio, debugging local tool-calling or context-overflow failures, or picking a local STT/TTS model."
 ---
 
 ## What This Does
 
 Helps you wire a local model into a real app or agent runner without the usual traps. The core is a capability probe that classifies a local endpoint into three **rungs**, because "the model runs locally" is not the same as "the model can do the job":
 
+- **Rung 0 — no model at all.** The decision is a lookup, a rule, or a string comparison. Do this sweep *before* probing anything.
 - **Rung 1 — reachable.** The server answers and lists models.
 - **Rung 2 — completion.** A single-shot chat completion returns real text.
 - **Rung 3 — tool-capable.** The model emits *structured* tool-calls the runner can execute, instead of describing them as prose.
+
+### Rung 0 — sweep before you probe
+
+**The cheapest, fastest, most reliable local decision is the one with no model in it.** Before choosing a model, enumerate every decision on the path you are trying to speed up and ask of each: *is this a lookup, a rule, or a comparison?* If yes it is rung 0, and a model is the wrong tool at any size — slower, less reliable, and unauditable next to a table read.
+
+This reorders the whole integration. "Which model?" is the second question; the first is "which of these needs a model?"
+
+**Why this rung exists (measured, 2026-07-18).** A voice-capture → triage pipeline was slow end to end and the obvious read was "it needs a local model to stop waiting on the cloud." The sweep found **23 of 28 decision points were rung 0**, and — the part that changed the plan — **16 of those were already implemented, and 7 were deterministic rules that ran inside a cloud LLM session purely because nobody had written them down as code.** The latency was prose-not-code, not absence-of-weights. Wiring the existing lookups closed most of the gap; the model tier shrank from "the whole decision layer" to the few genuinely judgment-shaped steps.
+
+Expect this. A pipeline that grew organically accumulates rules in documentation and prompts, and an LLM session becomes the interpreter for them by default — it is the path of least resistance, not a decision anyone made.
+
+**Signals a step is rung 0:**
+
+- it resolves against a table, registry, allowlist, or config
+- its answer is stable and auditable — same input, same output, forever
+- you could write the assertion before the code
+- a wrong answer is a *bug*, not a bad judgment call
+
+**Signals it is not** — it needs summarizing, ranking, classifying open-ended input, or reading intent. Those are rung 2.
+
+**Two traps, both seen live:**
+
+1. **Don't force a judgment call into a heuristic to win the count.** A wrong rung-0 verdict is worse than a slow rung-2 one, because it is silent and confident. When a heuristic's false-positive would send work somewhere wrong, make it *decline* rather than guess, and let the model tier handle what it declined.
+2. **Ship each rung-0 rule with a hermetic selftest, and name its money path** — the direction whose failure is expensive. Write the test for *that* case first. In the sweep above, two real defects were caught by selftests written this way and would otherwise have shipped silently.
+
+**What rung 0 buys you beyond speed:** it runs anywhere. Rung 1+ needs the host with the weights — often a laptop, which sleeps and leaves the house. Rung-0 decisions run on the always-on box, so the latency-critical path stays alive while the model tier queues.
 
 Rung 3 is the one that bites people: many local models, asked to use a tool, write `I'll call get_weather(...)` as **text** and never emit a real `tool_calls` object. An agentic runner then "describes" reading/writing files without doing it — silent wrong output. Completion work is safe at rung 2; agentic work needs rung 3 confirmed.
 
