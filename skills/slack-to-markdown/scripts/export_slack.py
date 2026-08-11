@@ -92,11 +92,13 @@ def format_slack_text(text, user_map):
         elif line.startswith('>'):
             line = "> " + line[1:].lstrip()
 
+        # Slack only treats * and _ as emphasis at word boundaries. Without the
+        # \w guards these eat underscores inside URLs, snake_case and :emoji_names:
         # Bold (*text* -> **text**)
-        line = re.sub(r'(?<!\*)\*([^\*]+)\*(?!\*)', r'**\1**', line)
+        line = re.sub(r'(?<![\w*])\*([^*\s][^*]*)\*(?![\w*])', r'**\1**', line)
 
         # Italic (_text_ -> *text*)
-        line = re.sub(r'(?<!\*)_([^_]+)_(?!\*)', r'*\1*', line)
+        line = re.sub(r'(?<![\w*])_([^_\s][^_]*)_(?![\w*])', r'*\1*', line)
 
         formatted_lines.append(line)
 

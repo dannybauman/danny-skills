@@ -74,7 +74,7 @@
       "name": "slack-to-markdown",
       "source": "./skills/slack-to-markdown",
       "description": "Extracts Slack conversations \u2014 single threads, channel message ranges, or \"from this message to now\" \u2014 from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "license": "MIT"
     },
     {
