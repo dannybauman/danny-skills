@@ -1,8 +1,0 @@
-{
-  "name": "airtable",
-  "description": "Interact with Airtable bases via the REST API. Use when the user wants to list, search, create, or update Airtable records, manage attachments, or query tables.",
-  "author": {
-    "name": "Danny Bauman"
-  },
-  "license": "MIT"
-}
