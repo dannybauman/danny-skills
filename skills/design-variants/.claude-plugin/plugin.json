@@ -1,9 +1,0 @@
-{
-  "name": "design-variants",
-  "version": "1.1.0",
-  "description": "Redesign a UI multiple ways at once using different AI tools, then compare.",
-  "author": {
-    "name": "Danny Bauman"
-  },
-  "license": "MIT"
-}
