@@ -57,20 +57,6 @@
       "license": "MIT"
     },
     {
-      "name": "branch-compare",
-      "source": "./skills/branch-compare",
-      "description": "Compare git branches visually side by side. Use when the user wants to compare branches, show versions, see differences, do a visual diff, or view before and after.",
-      "version": "1.1.0",
-      "license": "MIT"
-    },
-    {
-      "name": "design-variants",
-      "source": "./skills/design-variants",
-      "description": "Redesign a UI multiple ways at once using different AI tools, then compare. Use when the user wants a redesign, makeover, design options, multiple versions, design shootout, or visual overhaul.",
-      "version": "1.1.0",
-      "license": "MIT"
-    },
-    {
       "name": "slack-to-markdown",
       "source": "./skills/slack-to-markdown",
       "description": "Extracts Slack conversations \u2014 single threads, channel message ranges, or \"from this message to now\" \u2014 from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.",
@@ -89,13 +75,6 @@
       "source": "./skills/ai-impact-audit",
       "description": "Run a skeptical, evidence-grounded audit of the real value the AI assistance has given you, separating genuine impact from output volume, scaffolding, and the AI cleaning up after itself. Use when someone asks what working with AI has actually done for them, wants an honest assessment of an AI-assisted workflow, or wants to judge whether an AI setup is worth it.",
       "version": "0.2.0",
-      "license": "MIT"
-    },
-    {
-      "name": "integrating-local-models",
-      "source": "./skills/integrating-local-models",
-      "description": "Integrate a local LLM (Ollama / LM Studio) or local audio model (Whisper STT / Kokoro / Piper TTS) into an app or agent, with a three-rung capability probe. Use when wiring a local model into an app or agent runner, choosing between Ollama and LM Studio, debugging local tool-calling failures, or picking a local STT/TTS model.",
-      "version": "1.0.0",
       "license": "MIT"
     },
     {
