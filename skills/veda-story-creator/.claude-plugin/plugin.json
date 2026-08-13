@@ -1,8 +1,0 @@
-{
-  "name": "veda-story-creator",
-  "description": "Generates VEDA scrollytelling story MDX files with satellite data visualizations. Use when the user wants to create a new data story, write a story about an earth science topic, or generate an MDX file for the stories directory.",
-  "author": {
-    "name": "Danny Bauman"
-  },
-  "license": "MIT"
-}
