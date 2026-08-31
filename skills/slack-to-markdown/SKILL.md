@@ -1,6 +1,6 @@
 ---
 name: slack-to-markdown
-description: Extracts Slack conversations — single threads, channel message ranges, or "from this message to now" — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion. Supports --since/--until date filtering, --threads to expand replies inline, and --from-here to export a channel from a linked message onward.
+description: Extracts Slack conversations — single threads, channel message ranges, "from this message to now", or a Slack List — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion, or to pull the messages collected in a Slack List (a saved/curated list of messages). Supports --since/--until date filtering, --threads to expand replies inline, --from-here to export a channel from a linked message onward, and --filter to narrow a List by column.
 ---
 
 # Slack-to-Markdown
@@ -10,6 +10,7 @@ This skill takes a Slack thread URL or channel URL and exports the conversation 
 - **Thread mode**: Pass a thread URL (`archives/CHANNEL_ID/pTIMESTAMP`) to export a single thread with all replies
 - **Channel mode**: Pass a channel URL (`archives/CHANNEL_ID`) to export messages from the channel, optionally filtered by date range with `--since` and `--until`. Add `--threads` to expand each message's thread replies inline (nested as blockquotes)
 - **From-here mode**: Pass a *message* URL (`archives/CHANNEL_ID/pTIMESTAMP`) with `--from-here` to export the whole channel from that message to the latest, threads expanded. This is the "catch me up from this message onward" mode
+- **List mode**: Pass a Slack List URL (`lists/TEAM_ID/FILE_ID`) to export the list as Markdown with **every row's linked Slack message fetched and expanded inline** (threads, reactions and all). Narrow with `--filter COLUMN=VALUE`. This is the mode for a curated list of messages — a contributions log, a bug triage list, a reading list
 
 ## Prerequisites
 
@@ -22,6 +23,7 @@ This skill takes a Slack thread URL or channel URL and exports the conversation 
 - `channels:history` (Public Channels)
 - `groups:history` (Private Channels/DMs)
 - `users:read` (Resolving Usernames)
+- `files:read` (List mode — reading the List's CSV export)
 
 ## Environment & Compatibility
 
@@ -103,6 +105,15 @@ Copy the link to the message/thread or channel you want to export:
 # "Catch me up from this message to now" — channel from a linked message onward, threads expanded
 ./run.sh "https://workspace.slack.com/archives/C12345678/p1700000000000000" --from-here
 
+# Export a Slack List, expanding every row's linked message
+./run.sh "https://workspace.slack.com/lists/T12345678/F12345678"
+
+# Export only the rows where a column matches (case-insensitive substring)
+./run.sh "https://workspace.slack.com/lists/T12345678/F12345678" --filter "Reporter=alex@example.com"
+
+# Two filters AND together
+./run.sh "https://workspace.slack.com/lists/T12345678/F12345678" --filter "Status=done" --filter "Owner=alex"
+
 # Providing token directly
 ./run.sh "https://workspace.slack.com/archives/C12345678" --token xoxp-your-token
 ```
@@ -115,6 +126,7 @@ Optional arguments:
 - `--limit [N]`: Max messages to fetch in channel mode (default: 200).
 - `--threads`: In channel mode, expand each message's thread replies inline (nested as blockquotes). Off by default to keep exports lean.
 - `--from-here`: Given a *message* URL (`.../pTIMESTAMP`), export the whole channel from that message to the latest instead of just that one thread. Implies `--threads` and includes the linked message itself.
+- `--filter [COLUMN=VALUE]`: List mode only. Keep rows whose `COLUMN` contains `VALUE` (case-insensitive substring). Repeatable — multiple filters AND together. The error message lists the available column names if a filter matches nothing.
 
 ### 3. Retrieve the Markdown
 The file will be saved in the `output/` directory. Claude can then read this file to summarize it or perform further analysis.
@@ -123,8 +135,9 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 1.  **URL Parsing**: Extracts the Channel ID and optional Thread Timestamp from the URL.
 2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering). With `--threads`/`--from-here`, it also calls `conversations.replies` for each threaded message and nests the replies under their parent. `--from-here` sets the linked message's timestamp as an inclusive `oldest` bound so the linked message itself is included.
 3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear. It resolves to the person's **real name**, not their Slack display-handle, and keeps the handle in parentheses when they differ (e.g. a terse handle `jdoe` renders as `Jane Doe (jdoe)`). This is deliberate: a bare handle doesn't identify the person and invites mis-attribution when a reader guesses from it.
-4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages.
-5.  **Non-text content**: Messages whose `text` is empty because they only carry a shared message (a pasted Slack permalink) or a file/image no longer export blank. The shared message's link, author, and quoted body are surfaced inline (prefixed `↪`), and file posts list their name and link (prefixed `📎`). Applies to both top-level messages and expanded thread replies.
+4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages. Every mode renders through one shared function, so a message looks the same however it was fetched — reactions included.
+5.  **Lists**: A Slack List is a *file* (`mimetype: application/vnd.slack-list`), not a conversation, so it lives at `/lists/TEAM/FILE` and none of the `conversations.*` methods reach it. The row data isn't in `files.info` either — that call returns a `list_csv_download_url`, and fetching that URL with the same bearer token yields the rows as CSV. This path needs only `files:read`, which is why List mode works without the `lists:read` scope that every `slackLists.*` method demands. Each row is then scanned for a Slack permalink and that message is fetched and expanded inline. Users and channel names are resolved once and cached across rows, so a long list doesn't spend its rate limit re-resolving the same people.
+6.  **Non-text content**: Messages whose `text` is empty because they only carry a shared message (a pasted Slack permalink) or a file/image no longer export blank. The shared message's link, author, and quoted body are surfaced inline (prefixed `↪`), and file posts list their name and link (prefixed `📎`). Applies to both top-level messages and expanded thread replies.
 
 ## Tips & Lessons Learned
 
@@ -132,9 +145,13 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 -   **Silent Install Reassurance**: Installing a Slack App is a **silent action**. It does not notify the workspace or channels.
 -   **Manifest Setup**: Using the App Manifest is 10s of times faster than manual configuration and reduces the risk of missing a required scope.
 -   **Local Persistence**: Saving the token to `.env` (gitignored) is the best balance between security and convenience for local agent skills.
+-   **A `?record_id=` URL exports the whole list.** The CSV export carries no record IDs, so there is no way to match one to a row. The skill says so and exports everything — use `--filter` to narrow it. If you paste several record URLs from the same list, they are usually the rows sharing one column value, and one `--filter` gets all of them in a single call.
+-   **A permalink to a thread's parent carries no `thread_ts`.** Slack only adds that param to links pointing at a *reply*, so "does this URL have thread_ts" is not a reliable test for "is this a thread." List mode checks the fetched message's `reply_count` instead, otherwise a row linking a thread parent would export the parent alone.
+-   **List row titles are stored truncated.** Slack keeps roughly the first 143 characters of the message as the row's preview text, so a row title can end mid-link. The skill trims the dangling markup and the full message body follows underneath anyway.
 
 ## Troubleshooting
 
+-   **"Filter ... matched no rows"**: The error lists the List's actual column names. Column names are user-defined per list, so check the spelling against that output rather than guessing.
 -   **"Invalid Slack URL"**: Ensure you are copying the link directly from the message's "Copy link" option in Slack. It should contain `archives/C.../p...`.
 -   **"No such channel"**: Verify you are a member of the channel. User tokens only work for channels you have access to.
 -   **"Token Error"**: If your token expires or is revoked, just delete the `.env` file and generate a new one using the Manifest guide.
