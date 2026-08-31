@@ -2,7 +2,7 @@
 
 Run: python3 scripts/test_format_slack_text.py
 """
-from export_slack import format_slack_text, parse_list_url
+from export_slack import format_slack_text, parse_list_url, apply_filters, render_message
 
 
 def check(raw, expected, why):
@@ -48,6 +48,30 @@ def demo():
         "https://w.slack.com/lists/T025QMQE3/F08CS9AG82Z?record_id=Rec08L9JVG532"
     ) == ("F08CS9AG82Z", "Rec08L9JVG532")
     assert parse_list_url("https://w.slack.com/archives/C123/p1700000000000000") is None
+
+    # --filter: case-insensitive substring, and repeated filters AND together
+    ROWS = [
+        {"Owner": "Alex Kim", "Status": "Done"},
+        {"Owner": "alex morgan", "Status": "Open"},
+        {"Owner": "Sam Lee", "Status": "Done"},
+    ]
+    assert apply_filters(ROWS, [("Owner", "alex")]) == ROWS[:2], "substring, case-insensitive"
+    assert apply_filters(ROWS, [("Owner", "alex"), ("Status", "done")]) == [ROWS[0]], "filters AND"
+    try:
+        apply_filters(ROWS, [("Owner", "nobody")])
+        raise AssertionError("a filter matching nothing must raise")
+    except ValueError as e:
+        # The error has to name the real columns -- they're user-defined per list, so guessing
+        # the spelling is the whole problem it solves
+        assert "Owner, Status" in str(e), f"error should list columns, got: {e}"
+
+    # Every mode renders a message through render_message, so reactions and bodies can't drift
+    MSG = {"user": "U1", "ts": "1700000000.0", "text": "hi",
+           "reactions": [{"name": "tada", "count": 2}]}
+    assert render_message(MSG, {"U1": "@Alex"})[0].startswith("**@Alex** ["), "default form"
+    assert render_message(MSG, {"U1": "@Alex"}, heading=True)[0].startswith("### @Alex ["), "thread parent"
+    assert render_message(MSG, {"U1": "@Alex"}, quoted=True)[0].startswith("> **@Alex** ["), "reply"
+    assert "*Reactions: :tada: x2*\n" in render_message(MSG, {"U1": "@Alex"}), "reactions render"
 
     print("ok")
 

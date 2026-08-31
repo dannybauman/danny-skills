@@ -24,7 +24,6 @@ This skill takes a Slack thread URL or channel URL and exports the conversation 
 - `groups:history` (Private Channels/DMs)
 - `users:read` (Resolving Usernames)
 - `files:read` (List mode — reading the List's CSV export)
-- `lists:read` (List mode, **optional**) — only needed to resolve a `?record_id=` URL to one specific row. Without it, List mode still works: it exports the whole list and you narrow it with `--filter`
 
 ## Environment & Compatibility
 
@@ -136,8 +135,8 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 1.  **URL Parsing**: Extracts the Channel ID and optional Thread Timestamp from the URL.
 2.  **API Fetching**: Uses `conversations.replies` for threads, `conversations.history` for channel messages (with pagination and date-range filtering). With `--threads`/`--from-here`, it also calls `conversations.replies` for each threaded message and nests the replies under their parent. `--from-here` sets the linked message's timestamp as an inclusive `oldest` bound so the linked message itself is included.
 3.  **User Resolution**: Resolves both message authors and any `<@U_id>` mentions found inside message bodies, so the rendered output replaces IDs with names everywhere they appear. It resolves to the person's **real name**, not their Slack display-handle, and keeps the handle in parentheses when they differ (e.g. a terse handle `jdoe` renders as `Jane Doe (jdoe)`). This is deliberate: a bare handle doesn't identify the person and invites mis-attribution when a reader guesses from it.
-4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages.
-5.  **Lists**: A Slack List is a *file* (`mimetype: application/vnd.slack-list`), not a conversation, so it lives at `/lists/TEAM/FILE` and none of the `conversations.*` methods reach it. The row data isn't in `files.info` either — that call returns a `list_csv_download_url`, and fetching that URL with the same bearer token yields the rows as CSV. This path needs only `files:read`, which is why List mode works without the `lists:read` scope that every `slackLists.*` method demands. Each row is then scanned for a Slack permalink and that message is fetched and expanded inline.
+4.  **Formatting**: Converts Slack's mrkdwn into standard Markdown. Channel mode skips join/leave system messages. Every mode renders through one shared function, so a message looks the same however it was fetched — reactions included.
+5.  **Lists**: A Slack List is a *file* (`mimetype: application/vnd.slack-list`), not a conversation, so it lives at `/lists/TEAM/FILE` and none of the `conversations.*` methods reach it. The row data isn't in `files.info` either — that call returns a `list_csv_download_url`, and fetching that URL with the same bearer token yields the rows as CSV. This path needs only `files:read`, which is why List mode works without the `lists:read` scope that every `slackLists.*` method demands. Each row is then scanned for a Slack permalink and that message is fetched and expanded inline. Users and channel names are resolved once and cached across rows, so a long list doesn't spend its rate limit re-resolving the same people.
 6.  **Non-text content**: Messages whose `text` is empty because they only carry a shared message (a pasted Slack permalink) or a file/image no longer export blank. The shared message's link, author, and quoted body are surfaced inline (prefixed `↪`), and file posts list their name and link (prefixed `📎`). Applies to both top-level messages and expanded thread replies.
 
 ## Tips & Lessons Learned
@@ -146,7 +145,8 @@ The file will be saved in the `output/` directory. Claude can then read this fil
 -   **Silent Install Reassurance**: Installing a Slack App is a **silent action**. It does not notify the workspace or channels.
 -   **Manifest Setup**: Using the App Manifest is 10s of times faster than manual configuration and reduces the risk of missing a required scope.
 -   **Local Persistence**: Saving the token to `.env` (gitignored) is the best balance between security and convenience for local agent skills.
--   **A `?record_id=` URL can't be resolved without `lists:read`**. The CSV export carries no record IDs, so there is no way to match a record ID to a row from the CSV alone. The skill detects this, says so, and falls back to exporting the whole list — use `--filter` to narrow it. If you paste several record URLs from the same list, they are usually the rows sharing one column value, and one `--filter` gets all of them in a single call.
+-   **A `?record_id=` URL exports the whole list.** The CSV export carries no record IDs, so there is no way to match one to a row. The skill says so and exports everything — use `--filter` to narrow it. If you paste several record URLs from the same list, they are usually the rows sharing one column value, and one `--filter` gets all of them in a single call.
+-   **A permalink to a thread's parent carries no `thread_ts`.** Slack only adds that param to links pointing at a *reply*, so "does this URL have thread_ts" is not a reliable test for "is this a thread." List mode checks the fetched message's `reply_count` instead, otherwise a row linking a thread parent would export the parent alone.
 -   **List row titles are stored truncated.** Slack keeps roughly the first 143 characters of the message as the row's preview text, so a row title can end mid-link. The skill trims the dangling markup and the full message body follows underneath anyway.
 
 ## Troubleshooting
