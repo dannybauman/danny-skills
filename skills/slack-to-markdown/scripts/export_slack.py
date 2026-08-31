@@ -3,6 +3,9 @@ import re
 import sys
 import argparse
 import html
+import csv
+import io
+import urllib.request
 from pathlib import Path
 from datetime import datetime
 
@@ -61,6 +64,11 @@ def format_slack_text(text, user_map):
     text = re.sub(r'<(https?://[^|>]+)\|([^>]+)>', r'[\2](\1)', text)
     # Convert bare Slack links <URL> -> URL
     text = re.sub(r'<(https?://[^>]+)>', r'\1', text)
+
+    # 3b. Channel refs <#C123|name> -> #name. Slack omits the label when the channel was
+    # linked by ID, and there's no name to recover without an API call, so keep the ID
+    text = re.sub(r'<#([A-Z0-9]+)\|([^>]*)>', lambda m: '#' + (m.group(2) or m.group(1)), text)
+    text = re.sub(r'<#([A-Z0-9]+)>', r'#\1', text)
 
     # 4. Standardize mentions
     text = text.replace('<!here>', '@here').replace('<!channel>', '@channel')
@@ -227,6 +235,192 @@ def resolve_users(client, messages):
     return user_map
 
 
+def parse_list_url(url):
+    """
+    Parses a Slack List URL.
+
+    Supported formats:
+      - Whole list:    https://workspace.slack.com/lists/T12345678/F12345678
+      - Single record: https://workspace.slack.com/lists/T12345678/F12345678?record_id=Rec0123
+    Returns (list_file_id, record_id_or_None), or None if this isn't a list URL.
+    """
+    m = re.search(r'/lists/[A-Z0-9]+/([A-Z0-9]+)', url)
+    if not m:
+        return None
+    rec = re.search(r'record_id=([A-Za-z0-9]+)', url)
+    return m.group(1), (rec.group(1) if rec else None)
+
+
+def fetch_list(client, token, list_id):
+    """
+    Returns (title, rows) for a Slack List, where rows is a list of dicts keyed by column name.
+
+    Slack Lists are stored as files (mimetype application/vnd.slack-list) and the row data is
+    NOT in files.info -- it comes from the `list_csv_download_url` that files.info hands back.
+    That URL needs the same bearer token as the API, and only `files:read`, which is why this
+    works without the `lists:read` scope that slackLists.* requires.
+    """
+    info = client.files_info(file=list_id)["file"]
+    title = info.get("title") or list_id
+    csv_url = info.get("list_csv_download_url")
+    if not csv_url:
+        raise ValueError(
+            f"No CSV export available for list {list_id}. "
+            "files.info returned no list_csv_download_url -- is this actually a List?"
+        )
+    req = urllib.request.Request(csv_url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req) as resp:
+        body = resp.read().decode("utf-8")
+    rows = list(csv.DictReader(io.StringIO(body)))
+    return title, rows
+
+
+def resolve_list_record(client, list_id, record_id):
+    """
+    Resolves a single ?record_id= row via slackLists.items.info.
+
+    Returns the item dict, or None when the token lacks `lists:read` -- the CSV export carries
+    no record IDs, so a record_id simply cannot be matched to a row without this scope. Callers
+    fall back to exporting the whole list and filtering.
+    """
+    try:
+        resp = client.api_call(
+            "slackLists.items.info",
+            http_verb="GET",
+            params={"list_id": list_id, "id": record_id},
+        )
+        return resp.get("item")
+    except SlackApiError as e:
+        if e.response.get("error") == "missing_scope":
+            return None
+        raise
+
+
+def apply_filters(rows, filters):
+    """Keeps rows where every `COLUMN=VALUE` filter matches (case-insensitive substring)."""
+    for col, needle in filters:
+        needle = needle.lower()
+        matched = [r for r in rows if needle in (r.get(col) or "").lower()]
+        if not matched:
+            cols = ", ".join(rows[0].keys()) if rows else "(none)"
+            raise ValueError(f"Filter {col}={needle!r} matched no rows. Columns: {cols}")
+        rows = matched
+    return rows
+
+
+def fetch_permalink_message(client, url):
+    """
+    Fetches the message a Slack permalink points at.
+
+    Returns (channel_id, [messages]) -- the full reply chain for a thread permalink, or a
+    single-message list otherwise. A point read of one message is conversations_history with
+    oldest==latest and inclusive=True; conversations_replies only works on thread parents.
+    """
+    channel_id, ts = parse_slack_url(url)
+    if not ts:
+        return channel_id, []
+    if "thread_ts=" in url:
+        resp = client.conversations_replies(channel=channel_id, ts=ts, limit=200)
+    else:
+        resp = client.conversations_history(
+            channel=channel_id, oldest=ts, latest=ts, inclusive=True, limit=1
+        )
+    return channel_id, resp.get("messages", [])
+
+def export_list(client, token, url, list_id, record_id, args):
+    """Exports a Slack List to Markdown, expanding each row's linked Slack message inline."""
+    if record_id:
+        item = resolve_list_record(client, list_id, record_id)
+        if item is None:
+            print(f"[!] record_id={record_id} needs the `lists:read` scope, which this token "
+                  f"lacks (the CSV export carries no record IDs).")
+            print(f"[!] Exporting the whole list instead -- narrow it with --filter COLUMN=VALUE.")
+
+    title, rows = fetch_list(client, token, list_id)
+    print(f"[*] List mode: {title!r} ({len(rows)} rows)")
+
+    if args.filter:
+        filters = []
+        for f in args.filter:
+            if "=" not in f:
+                raise ValueError(f"--filter needs COLUMN=VALUE, got {f!r}")
+            col, val = f.split("=", 1)
+            filters.append((col.strip(), val.strip()))
+        rows = apply_filters(rows, filters)
+        print(f"[*] {len(rows)} row(s) after filtering")
+
+    md = [f"# {title}", f"- **Rows**: {len(rows)}",
+          f"- **Exported At**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+          f"- **Source**: [Slack List]({url})", "\n---\n"]
+
+    for i, row in enumerate(rows, 1):
+        # Any cell may hold the permalink; Slack's own column naming is user-defined, so find
+        # the link by shape rather than by trusting a column name
+        link = next((v for v in row.values() if v and "/archives/" in v), None)
+        header = next((v for v in row.values() if v and "/archives/" not in v), f"Row {i}")
+
+        messages, channel_id, user_map = [], None, {}
+        fetch_error = None
+        if link:
+            try:
+                channel_id, messages = fetch_permalink_message(client, link)
+            except (SlackApiError, ValueError) as e:
+                fetch_error = e
+            if messages:
+                user_map = resolve_users(client, messages)
+
+        # Row titles are raw Slack markup (the list stores the message preview verbatim), so
+        # they need the same formatting pass as message bodies -- and that needs user_map,
+        # which is why the fetch happens before the heading is written
+        # Slack truncates the stored preview mid-string, which can cut a <url|label> in half
+        # and leave markup the formatter has no closing bracket to match
+        heading = re.sub(r'<[^>]*$', '', format_slack_text(header, user_map)).strip()
+        md.append(f"## {i}. {heading[:160]}")
+        for k, v in row.items():
+            if v and "/archives/" not in v and v.strip() != header.strip():
+                md.append(f"- **{k}**: {v}")
+        if not link:
+            md.append("")
+            continue
+        md.append(f"- **Link**: {link}")
+        if fetch_error is not None:
+            md.append(f"\n> Could not fetch message: {fetch_error}\n")
+            continue
+        if not messages:
+            md.append("\n> Message not found (deleted, or the token can't see that channel)\n")
+            continue
+        channel_name = channel_id
+        try:
+            channel_name = client.conversations_info(channel=channel_id)["channel"]["name"]
+        except SlackApiError:
+            pass
+        md.append(f"- **Channel**: #{channel_name}\n")
+        for j, msg in enumerate(messages):
+            user = user_map.get(msg.get("user"), "Unknown User")
+            dt = datetime.fromtimestamp(float(msg.get("ts", 0))).strftime('%Y-%m-%d %H:%M:%S')
+            body = "\n\n".join(p for p in (
+                format_slack_text(msg.get("text", ""), user_map),
+                format_message_extras(msg, user_map),
+            ) if p)
+            if j == 0:
+                md.append(f"**{user}** [{dt}]\n\n{body}\n")
+            else:
+                md.append(f"> **{user}** [{dt}]")
+                md.append("> " + body.replace("\n", "\n> ") + "\n")
+            rx = msg.get("reactions")
+            if rx:
+                md.append("*Reactions: " + ", ".join(
+                    f":{r['name']}: x{r['count']}" for r in rx) + "*\n")
+
+    filename = args.output or f"slack_list_{list_id}_{datetime.now().strftime('%Y-%m-%d')}.md"
+    output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else _skill_dir / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / filename
+    with open(output_path, "w") as f:
+        f.write("\n".join(md))
+    print(f"[+] Successfully exported to: {output_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Export Slack conversation to Markdown")
     parser.add_argument("url", help="Slack thread URL or channel URL")
@@ -241,6 +435,9 @@ def main():
                         help="Max messages to fetch in channel mode (default: 200)")
     parser.add_argument("--threads", action="store_true",
                         help="In channel mode, expand each message's thread replies inline")
+    parser.add_argument("--filter", action="append", metavar="COLUMN=VALUE",
+                        help="List mode only: keep rows whose COLUMN contains VALUE "
+                             "(case-insensitive). Repeatable; filters AND together.")
     parser.add_argument("--from-here", action="store_true",
                         help="Given a message URL (/pTIMESTAMP), export the whole channel from that "
                              "message to latest (implies channel mode + --threads)")
@@ -254,6 +451,12 @@ def main():
     client = WebClient(token=token)
 
     try:
+        # Slack Lists live at /lists/TEAM/FILE, not /archives/, and parse_slack_url rejects them
+        list_target = parse_list_url(args.url)
+        if list_target:
+            export_list(client, token, args.url, list_target[0], list_target[1], args)
+            return
+
         channel_id, thread_ts = parse_slack_url(args.url)
 
         # --from-here turns a message URL into "channel from this message to latest",

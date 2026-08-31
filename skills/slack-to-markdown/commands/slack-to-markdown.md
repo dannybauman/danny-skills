@@ -1,6 +1,6 @@
 ---
 name: slack-to-markdown
-description: Extracts a Slack conversation thread from a URL and saves it as a formatted Markdown file. Use this when the user wants to archive, share, or summarize a Slack discussion.
+description: Extracts a Slack conversation thread, channel range, or Slack List from a URL and saves it as a formatted Markdown file. Use this when the user wants to archive, share, or summarize a Slack discussion.
 ---
 
 # Slack-to-Markdown
@@ -18,6 +18,7 @@ This skill takes a Slack message or thread URL and exports the conversation (inc
 - `channels:history` (Public Channels)
 - `groups:history` (Private Channels/DMs)
 - `users:read` (Resolving Usernames)
+- `files:read` (Slack Lists)
 
 ## Environment & Compatibility
 
@@ -60,6 +61,7 @@ oauth_config:
       - groups:history
       - users:read
       - channels:read
+      - files:read
 ```
 
 5.  Click **Next** and then **Create**.
@@ -87,8 +89,12 @@ Copy the link to the message or thread you want to export. It should look like:
 ./run.sh [SLACK_URL] --token xoxp-your-token
 ```
 
+Or a Slack List URL, which exports every row with its linked message expanded inline:
+`https://workspace.slack.com/lists/T12345678/F12345678`
+
 Optional arguments:
 - `--output [filename]`: Specify a custom output filename in the `output/` directory.
+- `--filter [COLUMN=VALUE]`: List mode only. Keep rows whose `COLUMN` contains `VALUE`. Repeatable.
 
 ### 3. Retrieve the Markdown
 The file will be saved in the `output/` directory. Claude can then read this file to summarize it or perform further analysis.
