@@ -45,7 +45,7 @@
     {
       "name": "slack-to-markdown",
       "source": "./skills/slack-to-markdown",
-      "description": "Extracts Slack conversations \u2014 single threads, channel message ranges, \"from this message to now\", or a Slack List \u2014 from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion, or to pull the messages collected in a Slack List (a saved/curated list of messages). Supports --since/--until date filtering, --threads to expand replies inline, --from-here to export a channel from a linked message onward, and --filter to narrow a List by column.",
+      "description": "Extracts Slack conversations — single threads, channel message ranges, \"from this message to now\", or a Slack List — from a URL and saves as formatted Markdown. Use when the user wants to archive, share, or summarize a Slack discussion, or to pull the messages collected in a Slack List (a saved/curated list of messages). Supports --since/--until date filtering, --threads to expand replies inline, --from-here to export a channel from a linked message onward, and --filter to narrow a List by column.",
       "version": "1.5.1",
       "license": "MIT"
     },
@@ -66,7 +66,7 @@
     {
       "name": "devseed-tarot",
       "source": "./skills/devseed-tarot",
-      "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault \u2014 no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
+      "description": "Draws a fun, DevSeed-flavored tarot reading from any git repo, project, or vault — no topic needed (it grounds in recent commit activity) or with a question as the lens. Renders as an on-brand local web page: welcome screen, face-down cards you turn yourself, animated chart-fragment card art, and a toggle between a generic DevSeed reading and one grounded in the repo's real signal. Use when someone asks for a tarot reading or a fun gut-check on a project.",
       "version": "1.0.1",
       "license": "MIT"
     },
@@ -74,6 +74,13 @@
       "name": "port-to-open-standard",
       "source": "./skills/port-to-open-standard",
       "description": "Convert proprietary IDE commands (like Claude Code custom slash commands) into cross-platform skills, commands, or MCP servers that work across Antigravity, Claude Code, and Cursor. Scaffold new standard workflows.",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "video-short-js",
+      "source": "./skills/video-short-js",
+      "description": "Builds a 30-90 second animated short as one self-contained JavaScript canvas page plus an MP4, with original score, sound design and locally generated narration. Use when asked for an animated short, explainer film, title sequence or story video in pure JavaScript.",
       "version": "1.0.0",
       "license": "MIT"
     }
