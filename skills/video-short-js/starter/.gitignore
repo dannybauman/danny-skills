@@ -4,3 +4,7 @@ audio/vendor/
 audio/final_mix.*
 .env
 .DS_Store
+local/*
+!local/pipeline*.sh
+!local/*.md
+!local/*_usage.jsonl

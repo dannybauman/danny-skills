@@ -2,6 +2,11 @@
 
 The order matters more than the detail: brief, then cue sheet, then sound and picture in parallel.
 
+In local-first mode (`local-first.md`) the phases are the same but who does them changes: a script runs the
+units, the local model writes the cue sheet, shots, notes and reviews, and the cloud makes a few logged
+one-shot calls. Where a phase below says to dispatch helpers or ask an independent reviewer, use a local
+unit or a one-shot call instead: helpers and supervising sessions are what made the cloud cost in that mode.
+
 ## 1. Preflight and inventory
 
 ```bash
@@ -17,7 +22,7 @@ vision. Read the model folders rather than starting the apps that own them. Deci
 | Narration | Local TTS, already installed |
 | Checking narration says the right words | Local transcription, already installed |
 | "Can a stranger follow this?" | Local vision model, already installed |
-| Composition, sound design, drawing, review | Whatever you are running on |
+| Composition, sound design, drawing, review | Whatever you are running on; in local-first mode the local model writes notes, events and placements, and drawing comes from a parts kit |
 
 If a needed local model is missing, say so and ask. Do not download one on your own.
 

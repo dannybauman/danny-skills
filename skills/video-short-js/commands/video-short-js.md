@@ -47,6 +47,10 @@ rebuilt later without this skill. Run every tool from the project root.
 | `node tools/render.mjs [--from a --to b] [--workers 2] [--crf 18]` | frame-exact MP4, audio muxed if `audio/final_mix.wav` exists |
 | `uv run tools/mix.py` | stems -> `final_mix.wav` + `.m4a`; prints voice-over-bed margins per line |
 | `python3 tools/local_viewer.py output/<name>.mp4` | a local vision model describes the film cold; nothing is downloaded |
+| `tools/run.sh [start\|pause\|status]` | local-first mode: starts or resumes `local/pipeline.sh`, pauses after the call in flight, reports without loading a model |
+| `python3 tools/local.py ask <task> < prompt` | one local completion, logged to `local/local_usage.jsonl`; exits 75 on a pause |
+| `python3 tools/cloud.py <task> < prompt` | one stripped `claude -p` call from an empty folder, usage logged to `local/cloud_usage.jsonl` |
+| `python3 tools/ledger.py` | local against cloud tokens, for the run alone and for everything |
 
 ## The process
 
@@ -67,6 +71,23 @@ Follow the phases in `references/process.md`. In short:
 8. **Fresh eyes.** `tools/local_viewer.py`, then one independent director's review.
 9. **Mix, render, verify.** `mix.py`, `build.mjs`, `render.mjs`, then `ffprobe` the result.
 10. **Credits and a making-of page.** Every sample and model with its licence.
+
+## Local-first mode
+
+When the owner wants local models to do as much of the work as possible, follow `references/local-first.md`.
+The short version, from three builds of one film:
+
+- **A script orchestrates; no cloud session stays open.** Each message a session sends re-sends its whole
+  context: a supervising session at about 800K tokens cost about 0.85M per reply, 80% of that build's cloud
+  total. Launch `tools/run.sh` detached, end the session, and read `local/STATUS.txt` later.
+- **The local model writes data against a parts kit; it does not draw from raw coordinates.** A 4B model
+  passed staging, timing and review tasks; its polygon drawings failed a blind vision check 10 times in 19.
+- **Cloud is a handful of logged one-shot calls:** a catalogue or recipe up front, takeovers only for
+  pieces that failed three times, one final review.
+- **Count both views** with `tools/ledger.py`. No build has yet reached a majority of tokens local with
+  everything counted (the best was 3.9%), and the parts-kit design has not been run end to end.
+
+`bash "${CLAUDE_SKILL_DIR}/scripts/selftest-local.sh"` proves pause, resume and crash recovery with a stub model.
 
 ## Rules for every helper (subagents included)
 
@@ -102,3 +123,4 @@ Put these in the first brief, not in a follow-up. Each one was learned by breaki
 - `references/engine.md`: the drawing kit in `starter/src` (paper pieces, ink, sprites, time helpers) and how to give a film a different look
 - `references/agent-briefs.md`: fill-in briefs for composer, sound designer, narrator, director
 - `references/lessons.md`: measured gotchas, each with the number that taught it
+- `references/local-first.md`: the local-first mode: the split, the local calls that work, pause and resume, the accounting, what is unproven

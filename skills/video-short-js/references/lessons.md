@@ -1,6 +1,7 @@
 # Lessons, each with the number that taught it
 
-From a 60-second, 1920x1080, 24 fps production on a 16 GB Apple Silicon laptop.
+From a 60-second, 1920x1080, 24 fps production on a 16 GB Apple Silicon laptop, and two later builds of the
+same film with a local model writing the content ("Local models and cloud cost" below; `local-first.md` has the mode).
 
 ## Picture
 
@@ -74,3 +75,27 @@ From a 60-second, 1920x1080, 24 fps production on a 16 GB Apple Silicon laptop.
   which pointed at a real weakness in the picture.
 - **The independent review found what the author could not.** Ten notes, all acted on (two in part). Give
   the reviewer the brief and frames, not your opinion.
+
+## Local models and cloud cost
+
+- **A long cloud session is the expensive part, not the writing.** Every message re-sends the whole context.
+  A fresh session's first message was about 45K tokens and grew to 65-220K as it read files. The session
+  supervising the third build held about 800K, so each reply cost about 0.85M; 20 replies came to 16M, 80% of
+  that build's cloud total, and the local share stopped at 3.9%.
+- **Supervisors get woken by notifications.** Background helpers and tracked tasks post "finished" and
+  "still running" notices; each one wakes the session and costs a full context re-read. Launch long runs
+  detached, and read a status file when asked.
+- **A script is the orchestrator when the steps are fixed.** The pipeline did not need judgment between
+  units, so a shell script ran it, with state in files. A one-shot `claude -p` for the rare judgment call cost
+  78K tokens by default and 33.6K stripped; `--bare` needs an API key.
+- **Small local models choose well and draw badly.** Gemma 4 E4B passed staging, timing, plans, notes and
+  review tasks at about 32 tokens a second. Its polygon drawings failed a blind vision check 10 times in 19,
+  and a cold viewer read the second build's film as "isolation", the opposite of the brief.
+- **Judge pictures blind.** Told "this is meant to be X: yes or no?", a 9B vision model said yes to 18 of 19
+  sprites. Asked "what is this a picture of?", it named 6 of 19. Ask pairwise choices twice with the order swapped.
+- **Validators must check meaning.** The first cue sheet that passed a format check put the story's closing wave
+  before anything was built. Demanding the story beats fixed it; rejecting "Dorian" for "dorian" wasted about 15 calls.
+- **Error text is the repair loop.** "Cannot read properties of undefined" fixed nothing in three tries; the
+  same error with the line number and the line's text was usually fixed next try.
+- **Time caps must count running time.** The third build capped its rounds on time since the first start,
+  so every pause used up budget. Count only time spent working.
