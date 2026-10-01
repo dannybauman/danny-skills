@@ -1,0 +1,10 @@
+{
+  "name": "my-short",
+  "title": "A short film",
+  "description": "One sentence a screen reader can say about this film",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "duration": 8,
+  "poster": 3.0
+}

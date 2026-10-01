@@ -31,6 +31,7 @@ Update everything:
 | port-to-open-standard | Scaffold cross-platform agent skills, commands, and MCP servers to escape vendor lock-in |
 | project-video | Generate short highlight reel videos for software projects |
 | satellite-image | Pull recent Sentinel-2 imagery from Microsoft Planetary Computer |
+| video-short-js | Build a 30-90 second animated short as one JavaScript canvas page plus an MP4, with score, sound design and local narration |
 | slack-to-markdown | Grab a Slack thread from a URL and save it as clean Markdown |
 | integrating-local-models | Wire a local LLM or audio model into an app or agent, with capability probes that catch the tool-calling trap |
 | stac-scaffolder | Scaffold a STAC (SpatioTemporal Asset Catalog) project with pystac |

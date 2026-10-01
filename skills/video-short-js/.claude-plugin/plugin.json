@@ -1,0 +1,8 @@
+{
+  "name": "video-short-js",
+  "description": "Builds a 30-90 second animated short as one self-contained JavaScript canvas page plus an MP4, with original score, sound design and locally generated narration. Use when asked for an animated short, explainer film, title sequence or story video in pure JavaScript.",
+  "author": {
+    "name": "Danny Bauman"
+  },
+  "license": "MIT"
+}
