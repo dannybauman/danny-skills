@@ -38,8 +38,8 @@ Every message a cloud session sends re-sends its whole context. That, not the wr
 
 - A fresh session's first message was about 45K tokens and grew to 65-220K as it read files.
 - The session supervising build 3 had about 800K tokens of context, so each reply cost about 0.85M. Twenty
-  replies cost 16M, 80% of that build's cloud total. Most of those replies were wake-ups: background
-  helpers and tracked tasks posting "finished" or "still running" notices.
+  replies cost 16M, 80% of that build's cloud total. A session also replies when a background
+  helper or tracked task posts a "finished" or "still running" notice, and each such wake costs one of these.
 - A one-shot `claude -p` call was 78K tokens by default and 33.6K stripped (the shape in `tools/cloud.py`).
   `--bare` needs an API key and fails with "Not logged in" on a subscription login.
 
